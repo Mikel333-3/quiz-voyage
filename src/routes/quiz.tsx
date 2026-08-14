@@ -1,0 +1,101 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Check, Flame, Timer, X, Zap } from "lucide-react";
+import { AppShell } from "@/components/quiz/AppShell";
+import { Panel, PrimaryButton } from "@/components/quiz/ui";
+import { useGame } from "@/lib/game-store";
+import { questionsFor, GAME_MODES } from "@/lib/quiz-data";
+import { comboMultiplier, pointsForAnswer, comboTier } from "@/lib/scoring";
+
+export const Route = createFileRoute("/quiz")({ component: QuizPage });
+
+function QuizPage() {
+  const navigate = useNavigate();
+  const { config, setConfig, finishMatch } = useGame();
+  const mode = GAME_MODES.find((m) => m.id === config?.mode) ?? GAME_MODES[0]!;
+  const questions = useMemo(() => config ? questionsFor(config.subject, config.questionCount, config.category) : [], [config]);
+  const [index, setIndex] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [combo, setCombo] = useState(0);
+  const [bestCombo, setBestCombo] = useState(0);
+  const [score, setScore] = useState(0);
+  const [seconds, setSeconds] = useState(mode.timePerQuestion ?? 0);
+  const [answered, setAnswered] = useState(false);
+
+  useEffect(() => {
+    if (!config) { navigate({ to: "/jouer" }); }
+  }, [config, navigate]);
+
+  useEffect(() => {
+    if (!config || answered || mode.timePerQuestion === null) return;
+    if (seconds <= 0) { submit(null); return; }
+    const id = window.setInterval(() => setSeconds((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(id);
+  }, [seconds, answered, config, mode.timePerQuestion]);
+
+  if (!config || !questions.length) return null;
+  const question = questions[index];
+  if (!question) return null;
+  const tier = comboTier(combo);
+
+  function submit(answer: number | null) {
+    if (answered) return;
+    const correct = answer === question.correctIndex;
+    const nextCombo = correct ? combo + 1 : 0;
+    const gained = correct ? pointsForAnswer(nextCombo, mode.timePerQuestion === null ? null : seconds, mode.timePerQuestion) : 0;
+    setSelected(answer);
+    setAnswered(true);
+    setCombo(nextCombo);
+    setBestCombo((b) => Math.max(b, nextCombo));
+    setScore((s) => s + gained);
+  }
+
+  function next() {
+    if (index + 1 >= questions.length) {
+      const correct = questions.reduce((n, q, i) => n + (i === index ? (selected === q.correctIndex ? 1 : 0) : 0), 0);
+      const totalCorrect = correct + 0;
+      const finalCorrect = totalCorrect;
+      finishMatch({ score, correct: finalCorrect, total: questions.length, bestCombo, config });
+      navigate({ to: "/resultats" });
+      return;
+    }
+    setIndex((i) => i + 1);
+    setSelected(null);
+    setAnswered(false);
+    setSeconds(mode.timePerQuestion ?? 0);
+  }
+
+  const progress = ((index + (answered ? 1 : 0)) / questions.length) * 100;
+
+  return (
+    <AppShell>
+      <div className="mx-auto max-w-3xl space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <button onClick={() => navigate({ to: "/jouer" })} className="tap glass rounded-full p-2"><ArrowLeft className="size-4" /></button>
+          <div className="min-w-0 flex-1"><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-[image:var(--gradient-primary)] transition-all" style={{ width: `${progress}%` }} /></div></div>
+          <span className="font-display text-xs font-bold">{index + 1}/{questions.length}</span>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="glass flex items-center gap-1 rounded-full px-3 py-1.5"><Zap className="size-3.5 text-accent" /> {score} pts</span>
+          <span className={`glass flex items-center gap-1 rounded-full px-3 py-1.5 ${tier !== "none" ? "text-warning" : "text-muted-foreground"}`}><Flame className="size-3.5" /> x{comboMultiplier(combo).toString()}</span>
+          {mode.timePerQuestion !== null && <span className={`glass flex items-center gap-1 rounded-full px-3 py-1.5 ${seconds <= 5 ? "text-destructive" : "text-accent"}`}><Timer className="size-3.5" /> {seconds}s</span>}
+        </div>
+
+        <Panel glow className="p-5 sm:p-7">
+          <p className="font-display text-xs uppercase tracking-[0.25em] text-accent">{question.category ?? mode.name}</p>
+          <h1 className="mt-3 text-xl font-black leading-tight sm:text-2xl">{question.prompt}</h1>
+          <div className="mt-6 grid gap-3">
+            {question.answers.map((answer, i) => {
+              const isCorrect = answered && i === question.correctIndex;
+              const isWrong = answered && selected === i && !isCorrect;
+              return <button key={answer} disabled={answered} onClick={() => submit(i)} className={`tap rounded-2xl border p-4 text-left text-sm font-semibold transition ${isCorrect ? "border-success bg-success/15" : isWrong ? "border-destructive bg-destructive/15" : "border-border bg-surface-2 hover:border-primary/60"}`}><span className="mr-3 inline-grid size-7 place-items-center rounded-lg bg-muted font-display text-xs">{String.fromCharCode(65 + i)}</span>{answer}{isCorrect && <Check className="float-right mt-1 size-5 text-success" />}{isWrong && <X className="float-right mt-1 size-5 text-destructive" />}</button>;
+            })}
+          </div>
+          {answered && <div className="mt-5 rounded-2xl bg-surface-2 p-4"><p className="font-display text-sm font-bold">{selected === question.correctIndex ? "🔥 Bonne réponse !" : "Pas cette fois."}</p><p className="mt-1 text-sm text-muted-foreground">{question.explanation}</p></div>}
+        </Panel>
+        {answered && <PrimaryButton onClick={next}>{index + 1 >= questions.length ? "Voir mes résultats" : "Question suivante"}</PrimaryButton>}
+      </div>
+    </AppShell>
+  );
+}
