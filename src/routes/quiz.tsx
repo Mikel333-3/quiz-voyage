@@ -11,21 +11,19 @@ export const Route = createFileRoute("/quiz")({ component: QuizPage });
 
 function QuizPage() {
   const navigate = useNavigate();
-  const { config, setConfig, finishMatch } = useGame();
+  const { config, finishMatch } = useGame();
   const mode = GAME_MODES.find((m) => m.id === config?.mode) ?? GAME_MODES[0]!;
   const questions = useMemo(() => config ? questionsFor(config.subject, config.questionCount, config.category) : [], [config]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [score, setScore] = useState(0);
   const [seconds, setSeconds] = useState(mode.timePerQuestion ?? 0);
   const [answered, setAnswered] = useState(false);
 
-  useEffect(() => {
-    if (!config) { navigate({ to: "/jouer" }); }
-  }, [config, navigate]);
-
+  useEffect(() => { if (!config) navigate({ to: "/jouer" }); }, [config, navigate]);
   useEffect(() => {
     if (!config || answered || mode.timePerQuestion === null) return;
     if (seconds <= 0) { submit(null); return; }
@@ -47,15 +45,13 @@ function QuizPage() {
     setAnswered(true);
     setCombo(nextCombo);
     setBestCombo((b) => Math.max(b, nextCombo));
+    setCorrectCount((n) => n + (correct ? 1 : 0));
     setScore((s) => s + gained);
   }
 
   function next() {
     if (index + 1 >= questions.length) {
-      const correct = questions.reduce((n, q, i) => n + (i === index ? (selected === q.correctIndex ? 1 : 0) : 0), 0);
-      const totalCorrect = correct + 0;
-      const finalCorrect = totalCorrect;
-      finishMatch({ score, correct: finalCorrect, total: questions.length, bestCombo, config });
+      finishMatch({ score, correct: correctCount, total: questions.length, bestCombo, config });
       navigate({ to: "/resultats" });
       return;
     }
@@ -66,7 +62,6 @@ function QuizPage() {
   }
 
   const progress = ((index + (answered ? 1 : 0)) / questions.length) * 100;
-
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl space-y-4">
@@ -75,13 +70,11 @@ function QuizPage() {
           <div className="min-w-0 flex-1"><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-[image:var(--gradient-primary)] transition-all" style={{ width: `${progress}%` }} /></div></div>
           <span className="font-display text-xs font-bold">{index + 1}/{questions.length}</span>
         </div>
-
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span className="glass flex items-center gap-1 rounded-full px-3 py-1.5"><Zap className="size-3.5 text-accent" /> {score} pts</span>
-          <span className={`glass flex items-center gap-1 rounded-full px-3 py-1.5 ${tier !== "none" ? "text-warning" : "text-muted-foreground"}`}><Flame className="size-3.5" /> x{comboMultiplier(combo).toString()}</span>
+          <span className={`glass flex items-center gap-1 rounded-full px-3 py-1.5 ${tier !== "none" ? "text-warning" : "text-muted-foreground"}`}><Flame className="size-3.5" /> x{comboMultiplier(combo)}</span>
           {mode.timePerQuestion !== null && <span className={`glass flex items-center gap-1 rounded-full px-3 py-1.5 ${seconds <= 5 ? "text-destructive" : "text-accent"}`}><Timer className="size-3.5" /> {seconds}s</span>}
         </div>
-
         <Panel glow className="p-5 sm:p-7">
           <p className="font-display text-xs uppercase tracking-[0.25em] text-accent">{question.category ?? mode.name}</p>
           <h1 className="mt-3 text-xl font-black leading-tight sm:text-2xl">{question.prompt}</h1>
