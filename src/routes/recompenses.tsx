@@ -1,0 +1,10 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { Crown, Flame, Flag, GraduationCap, Moon, Target, Trophy, Zap } from "lucide-react";
+import { AppShell } from "@/components/quiz/AppShell";
+import { Panel, SectionTitle } from "@/components/quiz/ui";
+import { BADGES } from "@/lib/quiz-data";
+import { useGame } from "@/lib/game-store";
+
+export const Route = createFileRoute("/recompenses")({ component: RewardsPage });
+const ICONS: Record<string, typeof Trophy> = { trophy: Trophy, zap: Zap, target: Target, flame: Flame, flag: Flag, graduation: GraduationCap, crown: Crown, moon: Moon };
+function RewardsPage() { const { player } = useGame(); return <AppShell><div className="mx-auto max-w-3xl space-y-5"><header><p className="font-display text-xs uppercase tracking-[0.35em] text-accent">Collection</p><h1 className="mt-2 text-2xl font-black">Récompenses</h1><p className="mt-1 text-sm text-muted-foreground">Chaque partie peut débloquer une nouvelle pièce de ta collection.</p></header><Panel glow className="p-5"><div className="flex items-center justify-between"><SectionTitle title="Progression" className="mb-0" /><span className="font-display text-sm font-bold text-accent">{player.badges.length}/{BADGES.length}</span></div><div className="mt-4 h-2 rounded-full bg-muted"><div className="h-full rounded-full bg-[image:var(--gradient-primary)]" style={{ width: `${(player.badges.length / BADGES.length) * 100}%` }} /></div></Panel><div className="grid gap-3 sm:grid-cols-2">{BADGES.map((b) => { const unlocked = player.badges.includes(b.id); const Icon = ICONS[b.icon] ?? Trophy; return <Panel key={b.id} className={`p-5 ${unlocked ? "glow-ring" : "opacity-55"}`}><div className="flex gap-4"><span className={`grid size-12 shrink-0 place-items-center rounded-2xl ${unlocked ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}><Icon className="size-6" /></span><div><p className="font-display text-sm font-bold">{b.name} {unlocked && "✓"}</p><p className="mt-1 text-sm text-muted-foreground">{b.description}</p><p className="mt-2 text-xs text-accent">{b.condition}</p></div></div></Panel>})}</div></div></AppShell>; }
