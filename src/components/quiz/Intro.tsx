@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { XpBar } from "./ui";
-import { playBrandSound, startAmbientMusic } from "@/lib/sound";
+import { unlockAudio, playBrandSound, startAmbientMusic } from "@/lib/sound";
+import { isMusicEnabled } from "@/lib/game-settings";
 
 const MESSAGES = ["INITIALIZING...", "LOADING KNOWLEDGE...", "CONNECTING PLAYERS..."];
 const SEEN_KEY = "quiztime:intro-seen";
@@ -11,14 +12,14 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    // Try immediately. Mobile browsers may block this until the first gesture.
     playBrandSound();
     let unlocked = false;
     const unlock = () => {
       if (unlocked) return;
       unlocked = true;
+      void unlockAudio();
       playBrandSound();
-      startAmbientMusic();
+      if (isMusicEnabled()) startAmbientMusic();
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
       window.removeEventListener("touchstart", unlock);
@@ -34,9 +35,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
       onDone();
     }, 1700);
     return () => {
-      clearInterval(tick);
-      clearInterval(msg);
-      clearTimeout(end);
+      clearInterval(tick); clearInterval(msg); clearTimeout(end);
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
       window.removeEventListener("touchstart", unlock);
@@ -56,9 +55,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
 export function useIntro() {
   const [show, setShow] = useState(true);
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem(SEEN_KEY)) setShow(false);
-    } catch { /* ignore */ }
+    try { if (sessionStorage.getItem(SEEN_KEY)) setShow(false); } catch { /* ignore */ }
   }, []);
   return { show, dismiss: () => setShow(false) };
 }
