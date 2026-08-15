@@ -29,6 +29,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/quiz-voyage/manifest.webmanifest" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "dns-prefetch", href: "https://fonts.googleapis.com" },
@@ -58,6 +59,12 @@ function RootComponent() {
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
+  }, []);
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const base = new URL("./", window.location.href);
+    const workerUrl = new URL("sw.js", base);
+    navigator.serviceWorker.register(workerUrl.pathname).catch(() => { /* offline support is progressive */ });
   }, []);
   return <QueryClientProvider client={queryClient}><GameProvider><Outlet /></GameProvider></QueryClientProvider>;
 }
