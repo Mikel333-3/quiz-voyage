@@ -11,7 +11,7 @@ import { HAITI_ZONE_QUESTIONS } from "@/lib/haiti-zone-questions";
 import { HAITI_ZONE_QUESTIONS_EXTRA } from "@/lib/haiti-zone-questions-extra";
 import { comboMultiplier, pointsForAnswer, comboTier } from "@/lib/scoring";
 import { getFeedbackDelay, getTimerDuration } from "@/lib/game-settings";
-import { playSound } from "@/lib/sound";
+import { playSound, playTimerEndSound } from "@/lib/sound";
 
 export const Route = createFileRoute("/quiz")({ component: QuizPage });
 const LEVELS = ["7e AF", "8e AF", "9e AF", "Seconde", "Rhéto", "Philo"] as const;
@@ -31,7 +31,7 @@ function chooseQuestions(config: NonNullable<ReturnType<typeof useGame>["config"
   const recent = new Set<string>();
   try { const saved = JSON.parse(sessionStorage.getItem(RECENT_KEY) ?? "[]"); if (Array.isArray(saved)) saved.forEach((id) => recent.add(String(id))); } catch { /* ignore */ }
   const fresh = subjectPool.filter((q) => !recent.has(q.id));
-  const candidatePool = fresh.length >= config.questionCount ? fresh : subjectPool.filter((q) => !recent.has(q.id));
+  const candidatePool = fresh.length >= config.questionCount ? fresh : subjectPool;
   const tagged = candidatePool.filter((q) => q.level);
   const exactLevelAndDifficulty = tagged.filter((q) => q.level === config.level && q.difficulty === config.difficulty);
   const exactLevel = tagged.filter((q) => q.level === config.level);
@@ -62,18 +62,34 @@ function QuizPage() {
   const configuredTimer = getTimerDuration();
   const questionTimer = mode.timePerQuestion === null ? null : configuredTimer;
   const [index, setIndex] = useState(0); const [selected, setSelected] = useState<number | null>(null); const [combo, setCombo] = useState(0); const [bestCombo, setBestCombo] = useState(0); const [score, setScore] = useState(0); const [seconds, setSeconds] = useState(questionTimer ?? 0); const [answered, setAnswered] = useState(false);
-  const scoreRef = useRef(0); const correctRef = useRef(0); const comboRef = useRef(0); const bestComboRef = useRef(0); const advancingRef = useRef(false);
+  const scoreRef = useRef(0); const correctRef = useRef(0); const comboRef = useRef(0); const bestComboRef = useRef(0); const advancingRef = useRef(false); const timeoutHandledRef = useRef(false);
   const feedbackDelay = getFeedbackDelay() * 1000;
   useEffect(() => {
     if (!config) { void navigate({ to: "/jouer", replace: true }); return; }
     if (!questions.length) { clearMatch(); void navigate({ to: "/jouer", replace: true }); }
   }, [config, questions.length, clearMatch, navigate]);
-  useEffect(() => { if (!config || answered || questionTimer === null) return; if (seconds <= 0) { submit(null); return; } const id = window.setInterval(() => setSeconds((s) => { const next = Math.max(0, s - 1); if (next <= 5) playSound("tick"); return next; }), 1000); return () => window.clearInterval(id); }, [seconds, answered, config, questionTimer]);
+  useEffect(() => {
+    timeoutHandledRef.current = false;
+    setSeconds(questionTimer ?? 0);
+  }, [index, questionTimer]);
+  useEffect(() => {
+    if (!config || answered || questionTimer === null) return;
+    if (seconds <= 0) {
+      if (!timeoutHandledRef.current) {
+        timeoutHandledRef.current = true;
+        playTimerEndSound();
+        submit(null);
+      }
+      return;
+    }
+    const id = window.setInterval(() => setSeconds((s) => { const next = Math.max(0, s - 1); if (next <= 5) playSound("tick"); return next; }), 1000);
+    return () => window.clearInterval(id);
+  }, [seconds, answered, config, questionTimer]);
   useEffect(() => { if (!answered) return; const id = window.setTimeout(() => next(), feedbackDelay); return () => window.clearTimeout(id); }, [answered, feedbackDelay]);
   if (!config || !questions.length) return null;
   const question = questions[index]; if (!question) return null; const tier = comboTier(combo);
   function submit(answer: number | null) { if (answered) return; const correct = answer === question.correctIndex; const nextCombo = correct ? comboRef.current + 1 : 0; const gained = correct ? pointsForAnswer(nextCombo, questionTimer === null ? null : seconds, questionTimer) : 0; const nextScore = scoreRef.current + gained; const nextBest = Math.max(bestComboRef.current, nextCombo); scoreRef.current = nextScore; correctRef.current += correct ? 1 : 0; comboRef.current = nextCombo; bestComboRef.current = nextBest; setSelected(answer); setAnswered(true); setCombo(nextCombo); setBestCombo(nextBest); setScore(nextScore); playSound(correct ? "correct" : "wrong"); }
-  function next() { if (advancingRef.current) return; advancingRef.current = true; if (index + 1 >= questions.length) { finishMatch({ score: scoreRef.current, correct: correctRef.current, total: questions.length, bestCombo: bestComboRef.current, config }); void navigate({ to: "/resultats", replace: true }); return; } setIndex((i) => i + 1); setSelected(null); setAnswered(false); setSeconds(questionTimer ?? 0); advancingRef.current = false; }
+  function next() { if (advancingRef.current) return; advancingRef.current = true; if (index + 1 >= questions.length) { finishMatch({ score: scoreRef.current, correct: correctRef.current, total: questions.length, bestCombo: bestComboRef.current, config }); void navigate({ to: "/resultats", replace: true }); return; } setIndex((i) => i + 1); setSelected(null); setAnswered(false); setSeconds(questionTimer ?? 0); timeoutHandledRef.current = false; advancingRef.current = false; }
   const exitMatch = () => { clearMatch(); playSound("nav"); void navigate({ to: "/jouer", replace: true }); };
   const progress = ((index + (answered ? 1 : 0)) / questions.length) * 100;
   return <AppShell><div className="mx-auto max-w-3xl space-y-4"><div className="flex items-center justify-between gap-3"><button onClick={exitMatch} className="tap glass rounded-full p-2 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105" aria-label="Quitter la partie"><ArrowLeft className="size-4" /></button><div className="min-w-0 flex-1"><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-[image:var(--gradient-primary)] transition-all" style={{ width: `${progress}%` }} /></div></div><span className="font-display text-xs font-bold">{index + 1}/{questions.length}</span></div>
