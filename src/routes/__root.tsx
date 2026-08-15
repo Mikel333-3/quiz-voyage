@@ -22,9 +22,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Quiz Time — Apprendre devient un jeu" },
-      { name: "description", content: "Quiz Time, le jeu de quiz ouvert à tous, avec une expérience particulièrement pensée pour les étudiants." },
-      { property: "og:title", content: "Quiz Time — Apprendre devient un jeu" },
+      { title: "QuizTime Go — Apprendre devient un jeu" },
+      { name: "description", content: "QuizTime Go, le jeu de quiz ouvert à tous, avec une expérience particulièrement pensée pour les étudiants." },
+      { property: "og:title", content: "QuizTime Go — Apprendre devient un jeu" },
       { property: "og:description", content: "Quiz, combos, XP, badges et Haïti Quest." },
     ],
     links: [
