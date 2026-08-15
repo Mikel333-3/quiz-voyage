@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { BADGES, GAME_MODES, type GameModeId, type SubjectId } from "./quiz-data";
+import { GAME_MODES, type GameModeId, type SubjectId } from "./quiz-data";
 import { ALL_EXTRA_BADGES } from "./achievements";
 
 const XP_PER_LEVEL = 400;
 const STORAGE_KEY = "quiztime:player:v1";
 const LAST_RESULT_KEY = "quiztime:last-result:v1";
+const CORE_BADGES = ["first-win", "perfect-run", "streak-master", "speedster", "haiti-explorer", "scholar", "top-100", "night-owl"].map((id) => ({ id }));
 
 export type PlayerState = { name: string; school: string; avatar: string; bio: string; xp: number; gamesPlayed: number; correctAnswers: number; totalAnswers: number; bestCombo: number; streakDays: number; badges: string[]; zonesCleared: string[] };
 export type MatchConfig = { mode: GameModeId; subject: SubjectId | "haiti"; level: string; difficulty: string; questionCount: number; category?: string; zoneId?: string };
@@ -29,7 +30,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resetProgress = useCallback(() => { persist(DEFAULT_PLAYER); setConfig(null); setLastResult(null); try { sessionStorage.removeItem(LAST_RESULT_KEY); } catch { /* ignore */ } }, [persist]);
   const finishMatch: Ctx["finishMatch"] = useCallback(({ score, correct, total, bestCombo, config: cfg }) => {
     const mode = GAME_MODES.find((m) => m.id === cfg.mode) ?? GAME_MODES[0]!; const xpGained = Math.round(score * mode.xpMultiplier); const levelBefore = levelFromXp(player.xp); const xp = player.xp + xpGained; const levelAfter = levelFromXp(xp);
-    const allBadges = [...BADGES, ...ALL_EXTRA_BADGES]; const earned = new Set(player.badges); const newBadges: string[] = [];
+    const allBadges = [...CORE_BADGES, ...ALL_EXTRA_BADGES]; const earned = new Set(player.badges); const newBadges: string[] = [];
     const add = (id: string) => { if (!earned.has(id) && allBadges.some((b) => b.id === id)) { earned.add(id); newBadges.push(id); } };
     add("first-win"); if (correct === total && total > 0) add("perfect-run"); if (bestCombo >= 5) add("streak-master"); if (bestCombo >= 10) add("combo-10"); if (cfg.mode === "chrono" && correct / Math.max(total, 1) >= 0.8) add("speedster"); if (cfg.mode === "haiti") add("haiti-explorer");
     if (player.gamesPlayed + 1 >= 10) add("scholar"); if (player.gamesPlayed + 1 >= 25) add("marathon"); if (levelAfter >= 10) add("top-100"); if (new Date().getHours() >= 22) add("night-owl");
