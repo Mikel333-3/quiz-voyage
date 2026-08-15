@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { XpBar } from "./ui";
+import { playBrandSound } from "@/lib/sound";
 
 const MESSAGES = ["INITIALIZING...", "LOADING KNOWLEDGE...", "CONNECTING PLAYERS..."];
 const SEEN_KEY = "quiztime:intro-seen";
@@ -10,13 +11,35 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
+    // Try immediately. If the browser blocks autoplay, the first gesture unlocks the sonic logo.
+    playBrandSound();
+    let unlocked = false;
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      playBrandSound();
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("touchstart", unlock);
+    };
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    window.addEventListener("touchstart", unlock, { once: true, passive: true });
+
     const tick = setInterval(() => setProgress((p) => Math.min(100, p + 7)), 70);
     const msg = setInterval(() => setStep((s) => (s + 1) % MESSAGES.length), 500);
     const end = setTimeout(() => {
       try { sessionStorage.setItem(SEEN_KEY, "1"); } catch { /* ignore */ }
       onDone();
     }, 1700);
-    return () => { clearInterval(tick); clearInterval(msg); clearTimeout(end); };
+    return () => {
+      clearInterval(tick);
+      clearInterval(msg);
+      clearTimeout(end);
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("touchstart", unlock);
+    };
   }, [onDone]);
 
   return <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-background px-8 text-center">
