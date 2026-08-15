@@ -21,27 +21,46 @@ type QuizQuestion = (typeof QUESTIONS)[number] & { level?: (typeof LEVELS)[numbe
 function levelDistance(a?: string, b?: string) { if (!a || !b) return 99; return Math.abs(LEVELS.indexOf(a as (typeof LEVELS)[number]) - LEVELS.indexOf(b as (typeof LEVELS)[number])); }
 
 function chooseQuestions(config: NonNullable<ReturnType<typeof useGame>["config"]>) {
-  if (config.zoneId) {
-    const zonePool = [...HAITI_ZONE_QUESTIONS, ...HAITI_ZONE_QUESTIONS_EXTRA].filter((q) => q.zoneId === config.zoneId) as QuizQuestion[];
-    const selected = shuffle(zonePool).slice(0, Math.min(config.questionCount, zonePool.length));
-    return selected.map((q) => { const answers = shuffle(q.answers.map((text, index) => ({ text, index }))); return { ...q, answers: answers.map((a) => a.text), correctIndex: answers.findIndex((a) => a.index === q.correctIndex) }; });
-  }
   const all = [...QUESTIONS, ...EXTRA_QUESTIONS, ...EXTRA_QUESTIONS_2] as QuizQuestion[];
-  const subjectPool = all.filter((q) => config.subject === "haiti" ? q.subject === "histoire" : q.subject === config.subject);
+  let subjectPool: QuizQuestion[];
+  if (config.zoneId) {
+    subjectPool = [...HAITI_ZONE_QUESTIONS, ...HAITI_ZONE_QUESTIONS_EXTRA].filter((q) => q.zoneId === config.zoneId) as QuizQuestion[];
+  } else {
+    subjectPool = all.filter((q) => config.subject === "haiti" ? q.subject === "histoire" : q.subject === config.subject);
+  }
   const recent = new Set<string>();
   try { const saved = JSON.parse(sessionStorage.getItem(RECENT_KEY) ?? "[]"); if (Array.isArray(saved)) saved.forEach((id) => recent.add(String(id))); } catch { /* ignore */ }
+
+  // Never repeat a question inside the current match. Prefer questions that have
+  // never appeared in the recent history, and only recycle old questions when
+  // there are not enough unseen questions to fill the match.
   const fresh = subjectPool.filter((q) => !recent.has(q.id));
-  const source = fresh.length >= config.questionCount ? fresh : subjectPool;
-  const tagged = source.filter((q) => q.level);
+  const candidatePool = fresh.length >= config.questionCount ? fresh : subjectPool.filter((q) => !recent.has(q.id));
+  const tagged = candidatePool.filter((q) => q.level);
   const exactLevelAndDifficulty = tagged.filter((q) => q.level === config.level && q.difficulty === config.difficulty);
   const exactLevel = tagged.filter((q) => q.level === config.level);
   const nearby = tagged.filter((q) => levelDistance(q.level, config.level) <= 1);
   const exactDifficulty = tagged.filter((q) => q.difficulty === config.difficulty);
-  const legacy = source.filter((q) => !q.level);
+  const legacy = candidatePool.filter((q) => !q.level);
   const ordered: QuizQuestion[] = [];
   const seen = new Set<string>();
-  for (const group of [exactLevelAndDifficulty, exactLevel, nearby, exactDifficulty, shuffle(tagged), shuffle(legacy)]) for (const q of shuffle(group)) if (!seen.has(q.id)) { seen.add(q.id); ordered.push(q); }
-  const selected = shuffle(ordered.slice(0, Math.min(config.questionCount, ordered.length)));
+  for (const group of [exactLevelAndDifficulty, exactLevel, nearby, exactDifficulty, shuffle(tagged), shuffle(legacy)]) {
+    for (const q of shuffle(group)) if (!seen.has(q.id)) { seen.add(q.id); ordered.push(q); }
+  }
+
+  let selected = ordered.slice(0, Math.min(config.questionCount, ordered.length));
+  // If the subject has fewer unseen questions than one match, recycle only the
+  // least-recently-used questions, never the same question twice in this match.
+  if (selected.length < config.questionCount) {
+    const selectedIds = new Set(selected.map((q) => q.id));
+    const recycled = subjectPool.filter((q) => !selectedIds.has(q.id)).sort((a, b) => {
+      const ai = Array.from(recent).indexOf(a.id); const bi = Array.from(recent).indexOf(b.id);
+      return (ai < 0 ? Number.MAX_SAFE_INTEGER : ai) - (bi < 0 ? Number.MAX_SAFE_INTEGER : bi);
+    });
+    for (const q of shuffle(recycled)) { if (selected.length >= config.questionCount) break; if (!selectedIds.has(q.id)) { selectedIds.add(q.id); selected.push(q); } }
+  }
+  selected = shuffle(selected);
+
   try { sessionStorage.setItem(RECENT_KEY, JSON.stringify([...selected.map((q) => q.id), ...Array.from(recent)].slice(0, RECENT_LIMIT))); } catch { /* ignore */ }
   return selected.map((q) => { const answers = shuffle(q.answers.map((text, index) => ({ text, index }))); return { ...q, answers: answers.map((a) => a.text), correctIndex: answers.findIndex((a) => a.index === q.correctIndex) }; });
 }
