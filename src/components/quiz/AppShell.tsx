@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { levelProgress, useGame } from "@/lib/game-store";
 import { playSound } from "@/lib/sound";
 import { Logo } from "./Logo";
+import { InstallGame } from "./InstallGame";
 
 const NAV = [
   { to: "/", label: "Lobby", icon: Home, exact: true },
@@ -83,5 +84,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
     </div>
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/90 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl lg:hidden"><ul className="mx-auto flex max-w-md items-stretch justify-between">{MOBILE_NAV.map(({ to, label, icon: Icon, ...rest }) => <li key={to} className="flex-1"><Link to={to} onClick={() => playSound("nav")} activeOptions={{ exact: "exact" in rest ? rest.exact : false }} activeProps={{ className: "text-accent" }} inactiveProps={{ className: "text-muted-foreground" }} className="tap flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5"><Icon className="size-5" /><span className="text-[10px] font-semibold uppercase tracking-wide">{label === "Haïti Quest" ? "Haïti" : label}</span></Link></li>)}</ul></nav>
+    <InstallGame />
   </div>;
 }
