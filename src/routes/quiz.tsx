@@ -68,10 +68,7 @@ function QuizPage() {
     if (!config) { void navigate({ to: "/jouer", replace: true }); return; }
     if (!questions.length) { clearMatch(); void navigate({ to: "/jouer", replace: true }); }
   }, [config, questions.length, clearMatch, navigate]);
-  useEffect(() => {
-    timeoutHandledRef.current = false;
-    setSeconds(questionTimer ?? 0);
-  }, [index, questionTimer]);
+  useEffect(() => { timeoutHandledRef.current = false; setSeconds(questionTimer ?? 0); }, [index, questionTimer]);
   useEffect(() => {
     if (!config || answered || questionTimer === null) return;
     if (seconds <= 0) {
@@ -88,7 +85,7 @@ function QuizPage() {
   useEffect(() => { if (!answered) return; const id = window.setTimeout(() => next(), feedbackDelay); return () => window.clearTimeout(id); }, [answered, feedbackDelay]);
   if (!config || !questions.length) return null;
   const question = questions[index]; if (!question) return null; const tier = comboTier(combo);
-  function submit(answer: number | null) { if (answered) return; const correct = answer === question.correctIndex; const nextCombo = correct ? comboRef.current + 1 : 0; const gained = correct ? pointsForAnswer(nextCombo, questionTimer === null ? null : seconds, questionTimer) : 0; const nextScore = scoreRef.current + gained; const nextBest = Math.max(bestComboRef.current, nextCombo); scoreRef.current = nextScore; correctRef.current += correct ? 1 : 0; comboRef.current = nextCombo; bestComboRef.current = nextBest; setSelected(answer); setAnswered(true); setCombo(nextCombo); setBestCombo(nextBest); setScore(nextScore); playSound(correct ? "correct" : "wrong"); }
+  function submit(answer: number | null) { if (answered) return; const correct = answer === question.correctIndex; const nextCombo = correct ? comboRef.current + 1 : 0; const gained = correct ? pointsForAnswer(nextCombo, questionTimer === null ? null : seconds, questionTimer) : 0; const nextScore = scoreRef.current + gained; const nextBest = Math.max(bestComboRef.current, nextCombo); scoreRef.current = nextScore; correctRef.current += correct ? 1 : 0; comboRef.current = nextCombo; bestComboRef.current = nextBest; setSelected(answer); setAnswered(true); setCombo(nextCombo); setBestCombo(nextBest); setScore(nextScore); if (answer !== null) playSound(correct ? "correct" : "wrong"); }
   function next() { if (advancingRef.current) return; advancingRef.current = true; if (index + 1 >= questions.length) { finishMatch({ score: scoreRef.current, correct: correctRef.current, total: questions.length, bestCombo: bestComboRef.current, config }); void navigate({ to: "/resultats", replace: true }); return; } setIndex((i) => i + 1); setSelected(null); setAnswered(false); setSeconds(questionTimer ?? 0); timeoutHandledRef.current = false; advancingRef.current = false; }
   const exitMatch = () => { clearMatch(); playSound("nav"); void navigate({ to: "/jouer", replace: true }); };
   const progress = ((index + (answered ? 1 : 0)) / questions.length) * 100;
