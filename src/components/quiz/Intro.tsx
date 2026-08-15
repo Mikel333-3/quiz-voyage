@@ -7,7 +7,7 @@ import { isMusicEnabled } from "@/lib/game-settings";
 
 const MESSAGES = [
   { title: "Le saviez-vous ?", text: "15 minutes de révision régulière peuvent faire une vraie différence sur la durée.", icon: "💡" },
-  { title: "Astuce Quiz Time", text: "Lis bien toute la question avant de choisir : la réponse la plus rapide n'est pas toujours la bonne.", icon: "🎯" },
+  { title: "Astuce QuizTime Go", text: "Lis bien toute la question avant de choisir : la réponse la plus rapide n'est pas toujours la bonne.", icon: "🎯" },
   { title: "Défi du jour", text: "Un petit quiz aujourd'hui, un peu d'XP demain, et bientôt ton nom dans le classement.", icon: "🚀" },
 ];
 const STATUS = ["INITIALIZING...", "LOADING KNOWLEDGE...", "PREPARING YOUR QUEST..."];
