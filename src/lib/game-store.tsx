@@ -15,6 +15,8 @@ const STORAGE_KEY = "quiztime:player:v1";
 export type PlayerState = {
   name: string;
   school: string;
+  avatar: string;
+  bio: string;
   xp: number;
   gamesPlayed: number;
   correctAnswers: number;
@@ -50,6 +52,8 @@ export type MatchResult = {
 const DEFAULT_PLAYER: PlayerState = {
   name: "BrainMaster",
   school: "Lycée Pétion",
+  avatar: "🧠",
+  bio: "Je joue pour apprendre.",
   xp: 850,
   gamesPlayed: 12,
   correctAnswers: 94,
@@ -75,6 +79,7 @@ type Ctx = {
   config: MatchConfig | null;
   lastResult: MatchResult | null;
   setConfig: (c: MatchConfig) => void;
+  updateProfile: (patch: Pick<PlayerState, "name" | "school" | "avatar" | "bio">) => void;
   finishMatch: (input: {
     score: number;
     correct: number;
@@ -109,6 +114,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       /* storage unavailable */
     }
   }, []);
+
+  const updateProfile = useCallback(
+    (patch: Pick<PlayerState, "name" | "school" | "avatar" | "bio">) => {
+      persist({ ...player, ...patch });
+    },
+    [player, persist],
+  );
 
   const finishMatch: Ctx["finishMatch"] = useCallback(
     ({ score, correct, total, bestCombo, config: cfg }) => {
@@ -177,10 +189,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       config,
       lastResult,
       setConfig,
+      updateProfile,
       finishMatch,
       resetProgress: () => persist(DEFAULT_PLAYER),
     }),
-    [player, config, lastResult, finishMatch, persist],
+    [player, config, lastResult, updateProfile, finishMatch, persist],
   );
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
