@@ -16,10 +16,11 @@ function getContext() {
 
 async function resumeContext() {
   const ctx = getContext();
-  if (ctx?.state === "suspended") {
+  if (!ctx) return null;
+  if (ctx.state !== "running") {
     try { await ctx.resume(); } catch { /* browser autoplay policy */ }
   }
-  return ctx;
+  return ctx.state === "running" ? ctx : null;
 }
 
 export function isSoundEnabled() {
@@ -31,10 +32,7 @@ export function setSoundEnabled(enabled: boolean) {
   if (!enabled) stopAmbientMusic();
 }
 
-/**
- * Plays a short UI/game effect. AudioContext must be resumed after a user
- * gesture on mobile browsers, so we resume it before creating the sound.
- */
+/** Plays a short UI/game effect after the browser's audio context has been unlocked by a user gesture. */
 export function playSound(kind: "correct" | "wrong" | "tick" | "nav") {
   if (!isSoundEnabled()) return;
   void resumeContext().then((ctx) => {
@@ -44,7 +42,7 @@ export function playSound(kind: "correct" | "wrong" | "tick" | "nav") {
         correct: { start: 620, end: 980, duration: 0.2, volume: 0.13, type: "sine" as OscillatorType },
         wrong: { start: 190, end: 120, duration: 0.24, volume: 0.11, type: "triangle" as OscillatorType },
         tick: { start: 680, end: 520, duration: 0.065, volume: 0.055, type: "square" as OscillatorType },
-        nav: { start: 430, end: 510, duration: 0.08, volume: 0.05, type: "sine" as OscillatorType },
+        nav: { start: 430, end: 510, duration: 0.09, volume: 0.12, type: "sine" as OscillatorType },
       }[kind];
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -71,7 +69,6 @@ export async function unlockAudio() {
   return true;
 }
 
-/** Signature sonore QuizTime Go. Autoplay can be blocked until the first user gesture. */
 export function playBrandSound() {
   if (!isSoundEnabled()) return false;
   void resumeContext().then((ctx) => {
@@ -123,11 +120,11 @@ export function startAmbientMusic() {
     if (!ctx || !isSoundEnabled() || !isMusicEnabled() || ambientTimer !== null) return;
 
     const playPad = () => {
-      if (!isSoundEnabled() || !isMusicEnabled() || !context) return;
+      if (!isSoundEnabled() || !isMusicEnabled() || !context || context.state !== "running") return;
       const now = context.currentTime;
       const master = context.createGain();
       master.gain.setValueAtTime(0.0001, now);
-      master.gain.exponentialRampToValueAtTime(0.018 * getVolume(), now + 0.7);
+      master.gain.exponentialRampToValueAtTime(0.055 * getVolume(), now + 0.7);
       master.gain.exponentialRampToValueAtTime(0.0001, now + 4.4);
       master.connect(context.destination);
       [130.81, 196, 261.63].forEach((frequency, index) => {
