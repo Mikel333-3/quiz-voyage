@@ -22,6 +22,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const persist = useCallback((next: PlayerState) => { setPlayer(next); try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ } }, []);
   const updateProfile = useCallback((patch: Pick<PlayerState, "name" | "school" | "avatar" | "bio">) => persist({ ...player, ...patch }), [player, persist]);
   const clearMatch = useCallback(() => setConfig(null), []);
+  const resetProgress = useCallback(() => { persist(DEFAULT_PLAYER); setConfig(null); setLastResult(null); }, [persist]);
   const finishMatch: Ctx["finishMatch"] = useCallback(({ score, correct, total, bestCombo, config: cfg }) => {
     const mode = GAME_MODES.find((m) => m.id === cfg.mode)!; const xpGained = Math.round(score * mode.xpMultiplier); const levelBefore = levelFromXp(player.xp); const xp = player.xp + xpGained; const levelAfter = levelFromXp(xp);
     const allBadges = [...BADGES, ...ALL_EXTRA_BADGES]; const earned = new Set(player.badges); const newBadges: string[] = [];
@@ -34,7 +35,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     persist(next);
     const result: MatchResult = { config: cfg, score, correct, total, bestCombo, xpGained, levelBefore, levelAfter, newBadges }; setLastResult(result); setConfig(null); return result;
   }, [player, persist]);
-  const value = useMemo<Ctx>(() => ({ player, level: levelFromXp(player.xp), successRate: player.totalAnswers ? Math.round((player.correctAnswers / player.totalAnswers) * 100) : 0, config, lastResult, setConfig, clearMatch, updateProfile, finishMatch, resetProgress: () => persist(DEFAULT_PLAYER) }), [player, config, lastResult, updateProfile, finishMatch, persist, clearMatch]);
+  const value = useMemo<Ctx>(() => ({ player, level: levelFromXp(player.xp), successRate: player.totalAnswers ? Math.round((player.correctAnswers / player.totalAnswers) * 100) : 0, config, lastResult, setConfig, clearMatch, updateProfile, finishMatch, resetProgress }), [player, config, lastResult, updateProfile, finishMatch, persist, clearMatch, resetProgress]);
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }
 export function useGame() { const ctx = useContext(GameContext); if (!ctx) throw new Error("useGame must be used inside <GameProvider>"); return ctx; }
