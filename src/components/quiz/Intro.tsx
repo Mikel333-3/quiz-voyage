@@ -67,7 +67,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
         <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-warning/15" aria-hidden><Lightbulb className="size-5 text-warning" /></span><div className="min-w-0"><p className="flex items-center gap-2 font-display text-xs font-bold uppercase tracking-[0.18em] text-accent"><Sparkles className="size-3" />{currentTip.title}</p><p className="mt-1 text-xs leading-5 text-muted-foreground sm:text-sm">{currentTip.text} <span aria-hidden>{currentTip.icon}</span></p></div></div>
       </div>
     </div>
-    <div className="absolute inset-x-5 bottom-7 z-10 mx-auto w-full max-w-xs"><XpBar percent={progress} /><p className="mt-3 font-display text-[11px] tracking-[0.3em] text-accent">{currentStatus}</p></div>
+    <div className="absolute inset-x-5 bottom-7 z-10 mx-auto w-full max-w-xs"><XpBar percent={progress} /><p className="mt-3 font-display text-[11px] tracking-[0.3em] text-accent">{currentStatus}</p><p className="mt-2 text-[10px] font-medium tracking-[0.2em] text-muted-foreground/70">Ajout by Legeek</p></div>
   </div>;
 }
 
