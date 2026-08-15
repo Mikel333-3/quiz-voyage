@@ -1,15 +1,20 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - TanStack devtools (dev-only, first), tanstackStart, viteReact, tailwindcss, tsConfigPaths,
-//     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,
-//     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
+// @lovable.dev/vite-tanstack-config already includes the core TanStack Start/Vite plugins.
+// We only add the deployment settings needed for a static GitHub Pages build.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  vite: {
+    // GitHub Pages serves this project from /quiz-voyage/.
+    base: "/quiz-voyage/",
+  },
   tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
+    // Generate static HTML for the routes that can be discovered at build time.
+    // This lets GitHub Pages serve Quiz Time without a Nitro server.
+    prerender: {
+      enabled: true,
+      crawlLinks: true,
+      failOnError: true,
+    },
     server: { entry: "server" },
   },
 });
