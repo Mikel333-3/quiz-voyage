@@ -11,7 +11,7 @@ export function Logo({ className, withIcon = true }: { className?: string; withI
         </span>
       )}
       <span className="whitespace-nowrap">
-        QUIZ<span className="text-gradient">TIME</span>
+        QUIZ<span className="text-gradient">TIME</span><span className="text-accent"> GO</span>
       </span>
     </span>
   );
