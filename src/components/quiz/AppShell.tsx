@@ -18,7 +18,7 @@ const NAV = [
 const MOBILE_NAV = NAV.filter((n) => n.label !== "Récompenses");
 const SESSION_START = "quiztime:session-start";
 const NOTIFICATIONS = [
-  { id: "welcome", delay: 60_000, title: "Bienvenue dans Quiz Time !", text: "Ta première mission t'attend. Fais un quiz et gagne ton premier XP.", icon: "👋" },
+  { id: "welcome", delay: 60_000, title: "Bienvenue dans QuizTime Go !", text: "Ta première mission t'attend. Fais un quiz et gagne ton premier XP.", icon: "👋" },
   { id: "daily", delay: 180_000, title: "Nouvelle mission", text: "Défi du jour : joue un quiz et tente de battre ton meilleur combo.", icon: "⚡" },
   { id: "quest", delay: 360_000, title: "Mission Haïti Quest", text: "Une nouvelle zone t'appelle. Explore, réponds et débloque ta prochaine récompense.", icon: "🇭🇹" },
 ];
@@ -75,7 +75,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/60 bg-background/85 px-3 backdrop-blur-xl lg:hidden">
           <button type="button" aria-label="Ouvrir le menu" onClick={() => { setMenuOpen((v) => !v); setNotificationsOpen(false); playSound("nav"); }} className="tap grid size-10 shrink-0 place-items-center rounded-xl glass">{menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}</button>
-          <Link to="/" aria-label="Quiz Time" onClick={() => { setMenuOpen(false); setNotificationsOpen(false); playSound("nav"); }} className="tap absolute left-1/2 -translate-x-1/2"><Logo className="text-lg" /></Link>
+          <Link to="/" aria-label="QuizTime Go" onClick={() => { setMenuOpen(false); setNotificationsOpen(false); playSound("nav"); }} className="tap absolute left-1/2 -translate-x-1/2"><Logo className="text-lg" /></Link>
           <div className="relative shrink-0"><NotificationButton notifications={notifications} onToggle={toggleNotifications} /></div>
         </header>
         {menuOpen && <div className="fixed inset-x-3 top-[4.25rem] z-50 max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl border border-border/70 bg-card/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden"><nav className="grid grid-cols-2 gap-1">{NAV.map(({ to, label, icon: Icon, ...rest }) => <Link key={to} to={to} onClick={() => { setMenuOpen(false); playSound("nav"); }} activeOptions={{ exact: "exact" in rest ? rest.exact : false }} className="tap flex items-center gap-2 rounded-xl px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground active:text-accent"><Icon className="size-4 shrink-0" /><span className="min-w-0 truncate">{label}</span></Link>)}</nav></div>}
