@@ -1,7 +1,10 @@
 const SOUND_KEY = "quiztime:sound";
 let context: AudioContext | null = null;
+let ambientTimer: number | null = null;
+let ambientNodes: OscillatorNode[] = [];
 
 function getContext() {
+  if (typeof window === "undefined") return null;
   const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioCtor) return null;
   context ??= new AudioCtor();
@@ -15,6 +18,7 @@ export function isSoundEnabled() {
 
 export function setSoundEnabled(enabled: boolean) {
   try { localStorage.setItem(SOUND_KEY, enabled ? "1" : "0"); } catch { /* ignore */ }
+  if (!enabled) stopAmbientMusic();
 }
 
 export function playSound(kind: "correct" | "wrong" | "tick" | "nav") {
@@ -23,25 +27,27 @@ export function playSound(kind: "correct" | "wrong" | "tick" | "nav") {
     const ctx = getContext();
     if (!ctx) return;
     const config = {
-      correct: { start: 620, end: 980, duration: 0.18, volume: 0.075, type: "sine" as OscillatorType },
-      wrong: { start: 190, end: 120, duration: 0.22, volume: 0.065, type: "triangle" as OscillatorType },
-      tick: { start: 680, end: 520, duration: 0.06, volume: 0.032, type: "square" as OscillatorType },
-      nav: { start: 430, end: 510, duration: 0.07, volume: 0.026, type: "sine" as OscillatorType },
+      correct: { start: 620, end: 980, duration: 0.2, volume: 0.11, type: "sine" as OscillatorType },
+      wrong: { start: 190, end: 120, duration: 0.24, volume: 0.095, type: "triangle" as OscillatorType },
+      tick: { start: 680, end: 520, duration: 0.065, volume: 0.045, type: "square" as OscillatorType },
+      nav: { start: 430, end: 510, duration: 0.08, volume: 0.04, type: "sine" as OscillatorType },
     }[kind];
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    const now = ctx.currentTime;
     osc.type = config.type;
-    osc.frequency.setValueAtTime(config.start, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(config.end, ctx.currentTime + config.duration);
-    gain.gain.setValueAtTime(config.volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + config.duration);
+    osc.frequency.setValueAtTime(config.start, now);
+    osc.frequency.exponentialRampToValueAtTime(config.end, now + config.duration);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(config.volume, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + config.duration);
     osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + config.duration);
+    osc.start(now);
+    osc.stop(now + config.duration + 0.01);
   } catch { /* sound is optional and never blocks gameplay */ }
 }
 
-/** Sonic logo Quiz Time. The browser may block autoplay until the first user gesture. */
+/** Signature sonore Quiz Time. Autoplay can be blocked until the first user gesture. */
 export function playBrandSound() {
   if (!isSoundEnabled()) return false;
   try {
@@ -50,7 +56,7 @@ export function playBrandSound() {
     const now = ctx.currentTime;
     const master = ctx.createGain();
     master.gain.setValueAtTime(0.0001, now);
-    master.gain.exponentialRampToValueAtTime(0.14, now + 0.06);
+    master.gain.exponentialRampToValueAtTime(0.22, now + 0.06);
     master.gain.exponentialRampToValueAtTime(0.001, now + 1.45);
     master.connect(ctx.destination);
 
@@ -63,7 +69,7 @@ export function playBrandSound() {
       osc.frequency.setValueAtTime(frequency, start);
       osc.frequency.exponentialRampToValueAtTime(frequency * 1.015, start + 0.48);
       gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.8 / notes.length, start + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.9 / notes.length, start + 0.04);
       gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.72);
       osc.connect(gain).connect(master);
       osc.start(start);
@@ -76,7 +82,7 @@ export function playBrandSound() {
     sweep.frequency.setValueAtTime(140, now + 0.18);
     sweep.frequency.exponentialRampToValueAtTime(620, now + 0.95);
     sweepGain.gain.setValueAtTime(0.0001, now + 0.18);
-    sweepGain.gain.exponentialRampToValueAtTime(0.035, now + 0.38);
+    sweepGain.gain.exponentialRampToValueAtTime(0.055, now + 0.38);
     sweepGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.05);
     sweep.connect(sweepGain).connect(master);
     sweep.start(now + 0.18);
@@ -85,4 +91,51 @@ export function playBrandSound() {
   } catch {
     return false;
   }
+}
+
+/**
+ * Lightweight procedural ambient loop. No audio file is downloaded, so it adds almost
+ * no network weight and stays subtle behind gameplay.
+ */
+export function startAmbientMusic() {
+  if (!isSoundEnabled() || ambientTimer !== null) return;
+  try {
+    const ctx = getContext();
+    if (!ctx) return;
+
+    const playPad = () => {
+      if (!isSoundEnabled() || !context) return;
+      const now = context.currentTime;
+      const master = context.createGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.012, now + 0.7);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 4.4);
+      master.connect(context.destination);
+
+      [130.81, 196, 261.63].forEach((frequency, index) => {
+        const osc = context!.createOscillator();
+        const gain = context!.createGain();
+        osc.type = index === 2 ? "sine" : "triangle";
+        osc.frequency.setValueAtTime(frequency, now);
+        gain.gain.setValueAtTime(0.65 / (index + 2), now);
+        osc.connect(gain).connect(master);
+        osc.start(now);
+        osc.stop(now + 4.5);
+        ambientNodes.push(osc);
+        osc.onended = () => { ambientNodes = ambientNodes.filter((node) => node !== osc); };
+      });
+    };
+
+    playPad();
+    ambientTimer = window.setInterval(playPad, 4200);
+  } catch { /* ambient audio is optional */ }
+}
+
+export function stopAmbientMusic() {
+  if (ambientTimer !== null && typeof window !== "undefined") {
+    window.clearInterval(ambientTimer);
+    ambientTimer = null;
+  }
+  ambientNodes.forEach((osc) => { try { osc.stop(); } catch { /* already stopped */ } });
+  ambientNodes = [];
 }
