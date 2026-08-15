@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { ArrowLeft, Zap } from "lucide-react";
 import { AppShell } from "@/components/quiz/AppShell";
 import { GhostButton, Panel, PrimaryButton, SectionTitle } from "@/components/quiz/ui";
+import { useGame } from "@/lib/game-store";
 import { getTimerDuration } from "@/lib/game-settings";
 import { DIFFICULTIES, GAME_MODES, LEVELS, QUESTION_COUNTS, SUBJECTS, shuffle, type GameModeId, type SubjectId } from "@/lib/quiz-data";
 import { cn } from "@/lib/utils";
