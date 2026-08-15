@@ -6,4 +6,101 @@ import { HAITI_ZONES } from "@/lib/quiz-data";
 import { useGame } from "@/lib/game-store";
 
 export const Route = createFileRoute("/haiti-quest")({ component: HaitiQuestPage });
-function HaitiQuestPage() { const navigate = useNavigate(); const { player, level, setConfig } = useGame(); const cleared = new Set(player.zonesCleared); const launch = (z: typeof HAITI_ZONES[number]) => { setConfig({ mode: "haiti", subject: "haiti", level: `Niveau ${level}`, difficulty: "Moyen", questionCount: z.questions, category: z.category, zoneId: z.id }); navigate({ to: "/quiz" }); }; return <AppShell><div className="mx-auto max-w-4xl space-y-5"><header><p className="font-display text-xs uppercase tracking-[0.35em] text-haiti">Signature mode</p><h1 className="mt-2 text-2xl font-black sm:text-3xl">🇭🇹 Haïti Quest</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Traverse les régions, découvre notre histoire et débloque les zones avec ton niveau.</p></header><Panel glow className="relative min-h-[420px] overflow-hidden p-4 sm:p-7"><div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/.5),transparent_55%)]" /><div className="absolute inset-8 rounded-[40%] border border-accent/20" /><div className="absolute inset-16 rounded-[45%] border border-accent/10" />{HAITI_ZONES.map((z) => { const locked = level < z.requiredLevel; const done = cleared.has(z.id); return <button key={z.id} disabled={locked} onClick={() => launch(z)} className="tap absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${z.x}%`, top: `${z.y}%` }}><span className={`grid size-12 place-items-center rounded-2xl border ${done ? "border-success bg-success/20 text-success" : locked ? "border-border bg-muted text-muted-foreground" : "border-accent bg-accent/15 text-accent"}`}>{locked ? <Lock className="size-5" /> : done ? <Star className="size-5" /> : <MapPinned className="size-5" />}</span><span className="mt-1 block whitespace-nowrap rounded-full bg-background/80 px-2 py-1 text-[10px] font-bold backdrop-blur">{z.name.split(" — ")[0]}</span></button>})}<div className="absolute bottom-4 left-4 right-4 flex flex-wrap justify-center gap-2 text-xs"><span className="glass rounded-full px-3 py-1.5">{player.zonesCleared.length}/8 zones</span><span className="glass rounded-full px-3 py-1.5">Niveau {level}</span></div></Panel><div className="grid gap-3 sm:grid-cols-2">{HAITI_ZONES.map((z) => { const locked = level < z.requiredLevel; const done = cleared.has(z.id); return <Panel key={z.id} className="p-4"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-haiti/15 text-haiti"><MapPinned className="size-5" /></span><div className="min-w-0 flex-1"><p className="font-display text-sm font-bold">{z.name}</p><p className="text-xs text-muted-foreground">{z.category} · {z.questions} questions · niveau {z.requiredLevel}+</p></div>{done ? <Star className="size-4 text-warning" /> : locked ? <Lock className="size-4 text-muted-foreground" /> : <button onClick={() => launch(z)} className="tap rounded-xl bg-[image:var(--gradient-primary)] p-2 text-primary-foreground"><Play className="size-4" /></button>}</div></Panel>})}</div><PrimaryButton onClick={() => { const first = HAITI_ZONES.find((z) => level >= z.requiredLevel && !cleared.has(z.id)) ?? HAITI_ZONES[0]!; launch(first); }}>Continuer ma quête</PrimaryButton></div></AppShell>; }
+
+function HaitiQuestPage() {
+  const navigate = useNavigate();
+  const { player, level, setConfig } = useGame();
+  const cleared = new Set(player.zonesCleared);
+
+  const launch = (z: typeof HAITI_ZONES[number]) => {
+    setConfig({
+      mode: "haiti",
+      subject: "haiti",
+      level: `Niveau ${level}`,
+      difficulty: "Moyen",
+      questionCount: z.questions,
+      category: z.category,
+      zoneId: z.id,
+    });
+    navigate({ to: "/quiz" });
+  };
+
+  return (
+    <AppShell>
+      <div className="mx-auto max-w-4xl space-y-5">
+        <header>
+          <p className="font-display text-xs uppercase tracking-[0.35em] text-haiti">Signature mode</p>
+          <h1 className="mt-2 text-2xl font-black sm:text-3xl">🇭🇹 Haïti Quest</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Traverse les régions, découvre notre histoire et débloque les zones avec ton niveau.</p>
+        </header>
+
+        <Panel glow className="relative min-h-[420px] overflow-hidden p-4 sm:p-7">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,hsl(var(--primary)/.16),transparent_52%)]" />
+          <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(hsl(var(--border)/.18)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/.18)_1px,transparent_1px)] [background-size:34px_34px]" />
+
+          <div className="relative mx-auto aspect-[1.55] w-full max-w-3xl">
+            <svg viewBox="0 0 1000 645" className="absolute inset-0 h-full w-full overflow-visible" aria-label="Carte stylisée d'Haïti Quest" role="img">
+              <defs>
+                <linearGradient id="quest-land" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="hsl(var(--primary) / .16)" />
+                  <stop offset="1" stopColor="hsl(var(--accent) / .08)" />
+                </linearGradient>
+                <filter id="quest-glow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="7" result="blur" />
+                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+              </defs>
+              <path d="M118 286 L151 249 L194 236 L222 202 L268 186 L312 191 L351 174 L396 184 L429 166 L470 180 L504 167 L544 181 L582 169 L623 184 L666 176 L711 196 L748 190 L783 216 L816 226 L851 258 L865 293 L850 323 L822 344 L791 354 L766 382 L735 392 L705 416 L667 426 L632 452 L592 466 L553 491 L515 503 L475 492 L437 506 L399 494 L359 500 L326 482 L289 488 L259 468 L222 459 L194 437 L169 423 L150 394 L128 372 L139 344 L120 318 Z" fill="url(#quest-land)" stroke="hsl(var(--accent) / .72)" strokeWidth="4" strokeLinejoin="round" filter="url(#quest-glow)" />
+              <path d="M205 293 L250 279 L292 286 L330 269 L371 278 L408 263 L451 277 L490 268 L531 280 L569 269 L610 283 L650 276 L690 292 L731 286 L769 303 L806 298" fill="none" stroke="hsl(var(--border) / .5)" strokeWidth="2" strokeDasharray="7 8" />
+              <path d="M177 355 L222 341 L266 352 L304 336 L347 346 L387 333 L430 344 L470 333 L513 347 L555 336 L596 351 L639 341 L680 354 L721 345 L760 360" fill="none" stroke="hsl(var(--border) / .38)" strokeWidth="2" strokeDasharray="5 9" />
+              <path d="M326 206 L348 252 L340 294 L360 337 L347 380 L363 425 M526 190 L507 232 L518 276 L499 320 L515 366 L498 410 M715 207 L692 245 L703 286 L682 329 L697 373" fill="none" stroke="hsl(var(--accent) / .2)" strokeWidth="2" />
+            </svg>
+
+            {HAITI_ZONES.map((z) => {
+              const locked = level < z.requiredLevel;
+              const done = cleared.has(z.id);
+              return (
+                <button
+                  key={z.id}
+                  disabled={locked}
+                  onClick={() => launch(z)}
+                  className="tap absolute -translate-x-1/2 -translate-y-1/2 transition-transform duration-200 hover:scale-105 disabled:cursor-not-allowed"
+                  style={{ left: `${z.x}%`, top: `${z.y}%` }}
+                  aria-label={`${z.name}${locked ? ", verrouillée" : ""}`}
+                >
+                  <span className={`grid size-11 place-items-center rounded-2xl border shadow-lg backdrop-blur-sm ${done ? "border-success bg-success/20 text-success" : locked ? "border-border bg-background/85 text-muted-foreground" : "border-accent bg-background/85 text-accent"}`}>
+                    {locked ? <Lock className="size-5" /> : done ? <Star className="size-5" /> : <MapPinned className="size-5" />}
+                  </span>
+                  <span className="mt-1 block whitespace-nowrap rounded-full border border-border/60 bg-background/90 px-2 py-1 text-[10px] font-bold shadow-sm backdrop-blur-sm">{z.name.split(" — ")[0]}</span>
+                </button>
+              );
+            })}
+
+            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 flex-wrap justify-center gap-2 text-xs">
+              <span className="glass rounded-full px-3 py-1.5">{player.zonesCleared.length}/8 zones</span>
+              <span className="glass rounded-full px-3 py-1.5">Niveau {level}</span>
+            </div>
+          </div>
+        </Panel>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {HAITI_ZONES.map((z) => {
+            const locked = level < z.requiredLevel;
+            const done = cleared.has(z.id);
+            return (
+              <Panel key={z.id} className="p-4">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 place-items-center rounded-xl bg-haiti/15 text-haiti"><MapPinned className="size-5" /></span>
+                  <div className="min-w-0 flex-1"><p className="font-display text-sm font-bold">{z.name}</p><p className="text-xs text-muted-foreground">{z.category} · {z.questions} questions · niveau {z.requiredLevel}+</p></div>
+                  {done ? <Star className="size-4 text-warning" /> : locked ? <Lock className="size-4 text-muted-foreground" /> : <button onClick={() => launch(z)} className="tap rounded-xl bg-[image:var(--gradient-primary)] p-2 text-primary-foreground"><Play className="size-4" /></button>}
+                </div>
+              </Panel>
+            );
+          })}
+        </div>
+
+        <PrimaryButton onClick={() => { const first = HAITI_ZONES.find((z) => level >= z.requiredLevel && !cleared.has(z.id)) ?? HAITI_ZONES[0]!; launch(first); }}>Continuer ma quête</PrimaryButton>
+      </div>
+    </AppShell>
+  );
+}
