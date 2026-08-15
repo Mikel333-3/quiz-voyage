@@ -1,9 +1,11 @@
 const VOLUME_KEY = "quiztime:volume";
 const FEEDBACK_KEY = "quiztime:feedback-delay";
+const TIMER_KEY = "quiztime:timer-duration";
 const MUSIC_KEY = "quiztime:music";
 
-export const DEFAULT_VOLUME = 0.65;
+export const DEFAULT_VOLUME = 1;
 export const DEFAULT_FEEDBACK_DELAY = 3;
+export const DEFAULT_TIMER_DURATION = 10;
 
 export function getVolume() {
   try {
@@ -28,6 +30,19 @@ export function getFeedbackDelay() {
 export function setFeedbackDelay(value: number) {
   const safe = Math.min(10, Math.max(1, Math.round(value)));
   try { localStorage.setItem(FEEDBACK_KEY, String(safe)); } catch { /* ignore */ }
+  return safe;
+}
+
+export function getTimerDuration() {
+  try {
+    const value = Number(localStorage.getItem(TIMER_KEY));
+    return Number.isFinite(value) ? Math.min(60, Math.max(5, Math.round(value))) : DEFAULT_TIMER_DURATION;
+  } catch { return DEFAULT_TIMER_DURATION; }
+}
+
+export function setTimerDuration(value: number) {
+  const safe = Math.min(60, Math.max(5, Math.round(value)));
+  try { localStorage.setItem(TIMER_KEY, String(safe)); } catch { /* ignore */ }
   return safe;
 }
 
