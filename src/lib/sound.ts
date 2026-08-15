@@ -32,7 +32,6 @@ export function setSoundEnabled(enabled: boolean) {
   if (!enabled) stopAmbientMusic();
 }
 
-/** Plays a short UI/game effect after the browser's audio context has been unlocked by a user gesture. */
 export function playSound(kind: "correct" | "wrong" | "tick" | "nav") {
   if (!isSoundEnabled()) return;
   void resumeContext().then((ctx) => {
@@ -112,6 +111,35 @@ export function playBrandSound() {
   return true;
 }
 
+export function playTimerEndSound() {
+  if (!isSoundEnabled()) return;
+  void resumeContext().then((ctx) => {
+    if (!ctx || !isSoundEnabled()) return;
+    try {
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      const volume = getVolume();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.58 * volume, now + 0.012);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+      master.connect(ctx.destination);
+      [740, 740, 988].forEach((frequency, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const start = now + index * 0.12;
+        osc.type = "square";
+        osc.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.32, start + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.105);
+        osc.connect(gain).connect(master);
+        osc.start(start);
+        osc.stop(start + 0.115);
+      });
+    } catch { /* sound is optional */ }
+  });
+}
+
 export function startAmbientMusic() {
   if (!isSoundEnabled() || !isMusicEnabled() || ambientTimer !== null || ambientStarting) return;
   ambientStarting = true;
@@ -124,7 +152,7 @@ export function startAmbientMusic() {
       const now = context.currentTime;
       const master = context.createGain();
       master.gain.setValueAtTime(0.0001, now);
-      master.gain.exponentialRampToValueAtTime(0.09 * getVolume(), now + 0.7);
+      master.gain.exponentialRampToValueAtTime(0.20 * getVolume(), now + 0.7);
       master.gain.exponentialRampToValueAtTime(0.0001, now + 4.4);
       master.connect(context.destination);
       [130.81, 196, 261.63].forEach((frequency, index) => {
@@ -132,7 +160,7 @@ export function startAmbientMusic() {
         const gain = context!.createGain();
         osc.type = index === 2 ? "sine" : "triangle";
         osc.frequency.setValueAtTime(frequency, now);
-        gain.gain.setValueAtTime(0.65 / (index + 2), now);
+        gain.gain.setValueAtTime(0.75 / (index + 2), now);
         osc.connect(gain).connect(master);
         osc.start(now);
         osc.stop(now + 4.5);
