@@ -7,16 +7,16 @@ import { GAME_MODES } from "@/lib/quiz-data";
 export const Route = createFileRoute("/jouer/")({
   head: () => ({
     meta: [
-      { title: "Choisis ton mode de jeu — Quiz Time" },
+      { title: "Choisis ton mode de jeu — QuizTime Go" },
       {
         name: "description",
         content:
-          "Entraînement, Chrono, Examen, Défi aléatoire ou Haïti Quest : choisis ton mode de jeu Quiz Time et lance ta partie.",
+          "Entraînement, Chrono, Examen, Défi aléatoire ou Haïti Quest : choisis ton mode de jeu QuizTime Go et lance ta partie.",
       },
-      { property: "og:title", content: "Modes de jeu — Quiz Time" },
+      { property: "og:title", content: "Modes de jeu — QuizTime Go" },
       {
         property: "og:description",
-        content: "Cinq façons de jouer et de gagner de l'XP sur Quiz Time.",
+        content: "Cinq façons de jouer et de gagner de l'XP sur QuizTime Go.",
       },
     ],
   }),
