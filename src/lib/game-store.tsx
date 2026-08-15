@@ -10,7 +10,7 @@ export type PlayerState = { name: string; school: string; avatar: string; bio: s
 export type MatchConfig = { mode: GameModeId; subject: SubjectId | "haiti"; level: string; difficulty: string; questionCount: number; category?: string; zoneId?: string };
 export type MatchResult = { config: MatchConfig; score: number; correct: number; total: number; bestCombo: number; xpGained: number; levelBefore: number; levelAfter: number; newBadges: string[] };
 
-const DEFAULT_PLAYER: PlayerState = { name: "BrainMaster", school: "Lycée Pétion", avatar: "🧠", bio: "Je joue pour apprendre.", xp: 850, gamesPlayed: 12, correctAnswers: 94, totalAnswers: 120, bestCombo: 4, streakDays: 12, badges: ["first-win", "scholar"], zonesCleared: [] };
+const DEFAULT_PLAYER: PlayerState = { name: "Joueur", school: "", avatar: "🧠", bio: "Prêt à jouer.", xp: 0, gamesPlayed: 0, correctAnswers: 0, totalAnswers: 0, bestCombo: 0, streakDays: 0, badges: [], zonesCleared: [] };
 export function levelFromXp(xp: number) { return Math.floor(xp / XP_PER_LEVEL) + 1; }
 export function levelProgress(xp: number) { const inLevel = xp % XP_PER_LEVEL; return { inLevel, needed: XP_PER_LEVEL, percent: Math.round((inLevel / XP_PER_LEVEL) * 100) }; }
 
