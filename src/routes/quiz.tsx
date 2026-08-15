@@ -4,54 +4,66 @@ import { ArrowLeft, Check, Flame, Timer, X, Zap } from "lucide-react";
 import { AppShell } from "@/components/quiz/AppShell";
 import { Panel } from "@/components/quiz/ui";
 import { useGame } from "@/lib/game-store";
-import { QUESTIONS, GAME_MODES } from "@/lib/quiz-data";
+import { QUESTIONS, GAME_MODES, shuffle } from "@/lib/quiz-data";
+import { EXTRA_QUESTIONS } from "@/lib/question-bank";
 import { comboMultiplier, pointsForAnswer, comboTier } from "@/lib/scoring";
+import { playSound } from "@/lib/sound";
 
 export const Route = createFileRoute("/quiz")({ component: QuizPage });
-
 const FEEDBACK_DELAY = 5000;
-let audioContext: AudioContext | null = null;
+const RECENT_KEY = "quiztime:recent-question-ids";
+const LEVELS = ["7e AF", "8e AF", "9e AF", "Seconde", "Rhéto", "Philo"] as const;
 
-function tone(kind: "correct" | "wrong" | "tick" | "nav") {
+type QuizQuestion = (typeof QUESTIONS)[number] & { level?: (typeof LEVELS)[number]; difficulty?: "Facile" | "Moyen" | "Difficile" };
+
+function levelDistance(a?: string, b?: string) {
+  if (!a || !b) return 99;
+  return Math.abs(LEVELS.indexOf(a as (typeof LEVELS)[number]) - LEVELS.indexOf(b as (typeof LEVELS)[number]));
+}
+
+function chooseQuestions(config: NonNullable<ReturnType<typeof useGame>["config"]>) {
+  const all = [...QUESTIONS, ...EXTRA_QUESTIONS] as QuizQuestion[];
+  const subjectPool = all.filter((q) => config.subject === "haiti" ? q.subject === "histoire" : q.subject === config.subject);
+  const recent = new Set<string>();
   try {
-    const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtor) return;
-    audioContext ??= new AudioCtor();
-    if (audioContext.state === "suspended") void audioContext.resume();
-    const ctx = audioContext;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const config = {
-      correct: [740, 0.16, 0.045],
-      wrong: [180, 0.22, 0.05],
-      tick: [520, 0.045, 0.02],
-      nav: [430, 0.055, 0.018],
-    }[kind];
-    osc.type = kind === "wrong" ? "triangle" : "sine";
-    osc.frequency.value = config[0];
-    gain.gain.setValueAtTime(config[2], ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + config[1]);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + config[1]);
-  } catch {
-    // Sound is optional and never blocks gameplay.
+    const saved = JSON.parse(sessionStorage.getItem(RECENT_KEY) ?? "[]");
+    if (Array.isArray(saved)) saved.forEach((id) => recent.add(String(id)));
+  } catch { /* ignore */ }
+
+  const fresh = subjectPool.filter((q) => !recent.has(q.id));
+  const source = fresh.length >= config.questionCount ? fresh : subjectPool;
+  const tagged = source.filter((q) => q.level);
+  const exactLevelAndDifficulty = tagged.filter((q) => q.level === config.level && q.difficulty === config.difficulty);
+  const exactLevel = tagged.filter((q) => q.level === config.level);
+  const nearby = tagged.filter((q) => levelDistance(q.level, config.level) <= 1);
+  const exactDifficulty = tagged.filter((q) => q.difficulty === config.difficulty);
+  const legacy = source.filter((q) => !q.level);
+  const ordered: QuizQuestion[] = [];
+  const seen = new Set<string>();
+  for (const group of [exactLevelAndDifficulty, exactLevel, nearby, exactDifficulty, shuffle(tagged), shuffle(legacy)]) {
+    for (const q of shuffle(group)) {
+      if (!seen.has(q.id)) { seen.add(q.id); ordered.push(q); }
+    }
   }
+  const selected = shuffle(ordered.slice(0, Math.min(config.questionCount, ordered.length)));
+
+  try {
+    const nextRecent = [...selected.map((q) => q.id), ...Array.from(recent)].slice(0, 36);
+    sessionStorage.setItem(RECENT_KEY, JSON.stringify(nextRecent));
+  } catch { /* ignore */ }
+
+  // Shuffle answer positions too, so the correct answer is not predictably placed.
+  return selected.map((q) => {
+    const answers = shuffle(q.answers.map((text, index) => ({ text, index })));
+    return { ...q, answers: answers.map((a) => a.text), correctIndex: answers.findIndex((a) => a.index === q.correctIndex) };
+  });
 }
 
 function QuizPage() {
   const navigate = useNavigate();
   const { config, finishMatch } = useGame();
   const mode = GAME_MODES.find((m) => m.id === config?.mode) ?? GAME_MODES[0]!;
-  const questions = useMemo(() => {
-    if (!config) return [];
-    let pool = QUESTIONS.filter((q) => config.subject === "haiti" ? q.subject === "histoire" : q.subject === config.subject);
-    if (config.category) {
-      const categoryPool = pool.filter((q) => q.category === config.category);
-      if (categoryPool.length >= 3) pool = categoryPool;
-    }
-    return [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(config.questionCount, pool.length));
-  }, [config]);
+  const questions = useMemo(() => config ? chooseQuestions(config) : [], [config]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [combo, setCombo] = useState(0);
@@ -74,7 +86,7 @@ function QuizPage() {
     const id = window.setInterval(() => {
       setSeconds((s) => {
         const next = Math.max(0, s - 1);
-        if (next <= 5) tone("tick");
+        if (next <= 5) playSound("tick");
         return next;
       });
     }, 1000);
@@ -110,7 +122,7 @@ function QuizPage() {
     setBestCombo(nextBest);
     setCorrectCount(nextCorrect);
     setScore(nextScore);
-    if (correct) tone("correct"); else tone("wrong");
+    playSound(correct ? "correct" : "wrong");
   }
 
   function next() {
@@ -132,7 +144,7 @@ function QuizPage() {
   return <AppShell>
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <button onClick={() => { tone("nav"); void navigate({ to: "/jouer" }); }} className="tap glass rounded-full p-2 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105"><ArrowLeft className="size-4" /></button>
+        <button onClick={() => { playSound("nav"); void navigate({ to: "/jouer" }); }} className="tap glass rounded-full p-2 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105"><ArrowLeft className="size-4" /></button>
         <div className="min-w-0 flex-1"><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-[image:var(--gradient-primary)] transition-all" style={{ width: `${progress}%` }} /></div></div>
         <span className="font-display text-xs font-bold">{index + 1}/{questions.length}</span>
       </div>
@@ -148,7 +160,7 @@ function QuizPage() {
           {question.answers.map((answer, i) => {
             const isCorrect = answered && i === question.correctIndex;
             const isWrong = answered && selected === i && !isCorrect;
-            return <button key={answer} disabled={answered} onClick={() => submit(i)} className={`tap rounded-2xl border p-4 text-left text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_0_24px_hsl(var(--primary)/.12)] ${isCorrect ? "border-success bg-success/15" : isWrong ? "border-destructive bg-destructive/15" : "border-border bg-surface-2 hover:border-primary/60"}`}><span className="mr-3 inline-grid size-7 place-items-center rounded-lg bg-muted font-display text-xs">{String.fromCharCode(65 + i)}</span>{answer}{isCorrect && <Check className="float-right mt-1 size-5 text-success" />}{isWrong && <X className="float-right mt-1 size-5 text-destructive" />}</button>;
+            return <button key={`${question.id}-${i}`} disabled={answered} onClick={() => submit(i)} className={`tap rounded-2xl border p-4 text-left text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_0_24px_hsl(var(--primary)/.12)] ${isCorrect ? "border-success bg-success/15" : isWrong ? "border-destructive bg-destructive/15" : "border-border bg-surface-2 hover:border-primary/60"}`}><span className="mr-3 inline-grid size-7 place-items-center rounded-lg bg-muted font-display text-xs">{String.fromCharCode(65 + i)}</span>{answer}{isCorrect && <Check className="float-right mt-1 size-5 text-success" />}{isWrong && <X className="float-right mt-1 size-5 text-destructive" />}</button>;
           })}
         </div>
         {answered && <div className="mt-5 animate-rise rounded-2xl bg-surface-2 p-4"><p className="font-display text-sm font-bold">{selected === question.correctIndex ? "🔥 Bonne réponse !" : "Pas cette fois."}</p><p className="mt-1 text-sm text-muted-foreground">{question.explanation}</p><p className="mt-3 text-xs text-muted-foreground">Question suivante dans 5 secondes…</p></div>}
