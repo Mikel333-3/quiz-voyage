@@ -4,52 +4,14 @@ import { useState } from "react";
 import { AppShell } from "@/components/quiz/AppShell";
 import { Avatar, Panel, SectionTitle, StatTile, XpBar } from "@/components/quiz/ui";
 import { useGame, levelProgress } from "@/lib/game-store";
+import { titleFor } from "@/lib/achievements";
 
 export const Route = createFileRoute("/profil")({ component: ProfilePage });
-
 const AVATARS = ["🧠", "⚡", "🚀", "🎯", "🦁", "🐺", "👑", "🇭🇹", "🎮", "🔭"];
-
 function ProfilePage() {
-  const { player, level, successRate, updateProfile } = useGame();
-  const p = levelProgress(player.xp);
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(player.name);
-  const [school, setSchool] = useState(player.school);
-  const [avatar, setAvatar] = useState(player.avatar);
-  const [bio, setBio] = useState(player.bio);
-
-  function save() {
-    updateProfile({
-      name: name.trim() || player.name,
-      school: school.trim() || "Joueur Quiz Time",
-      avatar,
-      bio: bio.trim() || "Je joue pour apprendre.",
-    });
-    setEditing(false);
-  }
-
-  return <AppShell><div className="mx-auto max-w-3xl space-y-5">
-    <Panel glow className="p-6">
-      <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-        <Avatar name={player.avatar || player.name} size={76} />
-        <div className="min-w-0 flex-1"><p className="font-display text-xs uppercase tracking-[0.3em] text-accent">Player profile</p><h1 className="mt-1 text-2xl font-black">{player.name}</h1><p className="text-sm text-muted-foreground">{player.school}</p><p className="mt-1 text-xs text-muted-foreground">{player.bio}</p></div>
-        <button aria-label="Modifier le profil" onClick={() => setEditing(true)} className="tap glass rounded-xl p-3 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105"><Pencil className="size-4" /></button>
-      </div>
-      <div className="mt-6 flex items-center gap-3"><span className="grid size-12 place-items-center rounded-2xl bg-[image:var(--gradient-primary)] font-display font-black text-primary-foreground">{level}</span><div className="flex-1"><div className="flex justify-between text-xs"><span>Niveau {level}</span><span>{p.inLevel}/{p.needed} XP</span></div><XpBar className="mt-2" percent={p.percent} /></div></div>
-    </Panel>
-
-    {editing && <Panel className="animate-rise border-primary/30 p-5">
-      <div className="flex items-center justify-between"><SectionTitle title="Personnaliser mon profil" /><button aria-label="Fermer" onClick={() => setEditing(false)} className="tap rounded-full p-2"><X className="size-4" /></button></div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <label className="text-sm font-semibold">Pseudo<input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} className="mt-2 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 outline-none transition focus:border-primary" /></label>
-        <label className="text-sm font-semibold">École<input value={school} onChange={(e) => setSchool(e.target.value)} maxLength={50} className="mt-2 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 outline-none transition focus:border-primary" /></label>
-        <label className="text-sm font-semibold sm:col-span-2">Bio<input value={bio} onChange={(e) => setBio(e.target.value)} maxLength={80} className="mt-2 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 outline-none transition focus:border-primary" /></label>
-      </div>
-      <div className="mt-4"><p className="text-sm font-semibold">Avatar</p><div className="mt-2 flex flex-wrap gap-2">{AVATARS.map((item) => <button key={item} onClick={() => setAvatar(item)} className={`tap grid size-11 place-items-center rounded-xl border text-xl transition hover:-translate-y-0.5 hover:scale-105 ${avatar === item ? "border-primary bg-primary/15 shadow-[0_0_18px_hsl(var(--primary)/.2)]" : "border-border bg-surface-2"}`}>{item}</button>)}</div></div>
-      <button onClick={save} className="tap mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[image:var(--gradient-primary)] px-5 py-3 text-sm font-bold text-primary-foreground transition-transform duration-200 hover:-translate-y-0.5"><Check className="size-4" /> Enregistrer</button>
-    </Panel>}
-
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><StatTile label="Quiz joués" value={player.gamesPlayed} /><StatTile label="Réussite" value={`${successRate}%`} /><StatTile label="Meilleur combo" value={`x${player.bestCombo}`} icon={<Trophy className="size-4" />} accent="warning" /><StatTile label="XP total" value={player.xp} icon={<Zap className="size-4" />} /></div>
-    <Panel className="p-5"><SectionTitle title="Mon parcours" /><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-2xl bg-surface-2 p-4"><p className="text-xs text-muted-foreground">Série</p><p className="mt-1 font-display text-2xl font-black">{player.streakDays} j</p></div><div className="rounded-2xl bg-surface-2 p-4"><p className="text-xs text-muted-foreground">Badges</p><p className="mt-1 font-display text-2xl font-black">{player.badges.length}</p></div><div className="rounded-2xl bg-surface-2 p-4"><p className="text-xs text-muted-foreground">Zones</p><p className="mt-1 font-display text-2xl font-black">{player.zonesCleared.length}/8</p></div></div></Panel>
-  </div></AppShell>;
+  const { player, level, successRate, updateProfile } = useGame(); const p = levelProgress(player.xp); const title = titleFor(level, player.bestCombo, player.zonesCleared.length, player.gamesPlayed); const [editing, setEditing] = useState(false); const [name, setName] = useState(player.name); const [school, setSchool] = useState(player.school); const [avatar, setAvatar] = useState(player.avatar); const [bio, setBio] = useState(player.bio);
+  function save() { updateProfile({ name: name.trim() || player.name, school: school.trim() || "Joueur Quiz Time", avatar, bio: bio.trim() || "Je joue pour apprendre." }); setEditing(false); }
+  return <AppShell><div className="mx-auto max-w-3xl space-y-5"><Panel glow className="p-6"><div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left"><Avatar name={player.avatar || player.name} size={76} /><div className="min-w-0 flex-1"><p className="font-display text-xs uppercase tracking-[0.3em] text-accent">Player profile</p><h1 className="mt-1 text-2xl font-black">{player.name}</h1><p className="font-display text-sm font-bold text-accent">{title?.name ?? "Apprenti Quiz"}</p><p className="text-sm text-muted-foreground">{player.school}</p><p className="mt-1 text-xs text-muted-foreground">{player.bio}</p></div><button aria-label="Modifier le profil" onClick={() => setEditing(true)} className="tap glass rounded-xl p-3 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105"><Pencil className="size-4" /></button></div><div className="mt-6 flex items-center gap-3"><span className="grid size-12 place-items-center rounded-2xl bg-[image:var(--gradient-primary)] font-display font-black text-primary-foreground">{level}</span><div className="flex-1"><div className="flex justify-between text-xs"><span>Niveau {level}</span><span>{p.inLevel}/{p.needed} XP</span></div><XpBar className="mt-2" percent={p.percent} /></div></div></Panel>
+    {editing && <Panel className="animate-rise border-primary/30 p-5"><div className="flex items-center justify-between"><SectionTitle title="Personnaliser mon profil" /><button aria-label="Fermer" onClick={() => setEditing(false)} className="tap rounded-full p-2"><X className="size-4" /></button></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-semibold">Pseudo<input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} className="mt-2 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 outline-none transition focus:border-primary" /></label><label className="text-sm font-semibold">École<input value={school} onChange={(e) => setSchool(e.target.value)} maxLength={50} className="mt-2 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 outline-none transition focus:border-primary" /></label><label className="text-sm font-semibold sm:col-span-2">Bio<input value={bio} onChange={(e) => setBio(e.target.value)} maxLength={80} className="mt-2 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 outline-none transition focus:border-primary" /></label></div><div className="mt-4"><p className="text-sm font-semibold">Avatar</p><div className="mt-2 flex flex-wrap gap-2">{AVATARS.map((item) => <button key={item} onClick={() => setAvatar(item)} className={`tap grid size-11 place-items-center rounded-xl border text-xl transition hover:-translate-y-0.5 hover:scale-105 ${avatar === item ? "border-primary bg-primary/15 shadow-[0_0_18px_hsl(var(--primary)/.2)]" : "border-border bg-surface-2"}`}>{item}</button>)}</div></div><button onClick={save} className="tap mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[image:var(--gradient-primary)] px-5 py-3 text-sm font-bold text-primary-foreground transition-transform duration-200 hover:-translate-y-0.5"><Check className="size-4" /> Enregistrer</button></Panel>}
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><StatTile label="Quiz joués" value={player.gamesPlayed} /><StatTile label="Réussite" value={`${successRate}%`} /><StatTile label="Meilleur combo" value={`x${player.bestCombo}`} icon={<Trophy className="size-4" />} accent="warning" /><StatTile label="XP total" value={player.xp} icon={<Zap className="size-4" />} /></div><Panel className="p-5"><SectionTitle title="Mon parcours" /><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-2xl bg-surface-2 p-4"><p className="text-xs text-muted-foreground">Titre actuel</p><p className="mt-1 font-display text-lg font-black text-accent">{title?.name ?? "Apprenti Quiz"}</p></div><div className="rounded-2xl bg-surface-2 p-4"><p className="text-xs text-muted-foreground">Badges</p><p className="mt-1 font-display text-2xl font-black">{player.badges.length}</p></div><div className="rounded-2xl bg-surface-2 p-4"><p className="text-xs text-muted-foreground">Zones</p><p className="mt-1 font-display text-2xl font-black">{player.zonesCleared.length}/8</p></div></div></Panel></div></AppShell>;
 }
