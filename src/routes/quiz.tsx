@@ -16,6 +16,7 @@ import { playSound } from "@/lib/sound";
 export const Route = createFileRoute("/quiz")({ component: QuizPage });
 const LEVELS = ["7e AF", "8e AF", "9e AF", "Seconde", "Rhéto", "Philo"] as const;
 const RECENT_KEY = "quiztime:recent-question-ids";
+const RECENT_LIMIT = 150;
 type QuizQuestion = (typeof QUESTIONS)[number] & { level?: (typeof LEVELS)[number]; difficulty?: "Facile" | "Moyen" | "Difficile"; zoneId?: string };
 function levelDistance(a?: string, b?: string) { if (!a || !b) return 99; return Math.abs(LEVELS.indexOf(a as (typeof LEVELS)[number]) - LEVELS.indexOf(b as (typeof LEVELS)[number])); }
 
@@ -41,7 +42,7 @@ function chooseQuestions(config: NonNullable<ReturnType<typeof useGame>["config"
   const seen = new Set<string>();
   for (const group of [exactLevelAndDifficulty, exactLevel, nearby, exactDifficulty, shuffle(tagged), shuffle(legacy)]) for (const q of shuffle(group)) if (!seen.has(q.id)) { seen.add(q.id); ordered.push(q); }
   const selected = shuffle(ordered.slice(0, Math.min(config.questionCount, ordered.length)));
-  try { sessionStorage.setItem(RECENT_KEY, JSON.stringify([...selected.map((q) => q.id), ...Array.from(recent)].slice(0, 36))); } catch { /* ignore */ }
+  try { sessionStorage.setItem(RECENT_KEY, JSON.stringify([...selected.map((q) => q.id), ...Array.from(recent)].slice(0, RECENT_LIMIT))); } catch { /* ignore */ }
   return selected.map((q) => { const answers = shuffle(q.answers.map((text, index) => ({ text, index }))); return { ...q, answers: answers.map((a) => a.text), correctIndex: answers.findIndex((a) => a.index === q.correctIndex) }; });
 }
 
