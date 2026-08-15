@@ -23,7 +23,7 @@ export function challengeUrl(payload: SharePayload) {
 
 export function shareText(payload: SharePayload, challenge = false) {
   const name = payload.name || "Moi";
-  const result = `${payload.score.toLocaleString("fr-FR")} XP`;
+  const result = `${payload.score.toLocaleString("fr-FR")} points`;
   if (challenge) {
     return `🎮 ${name} te défie sur QuizTime Go !\n🏆 Score à battre : ${result}\n🔥 Tu penses pouvoir faire mieux ?\n\n👉 ${challengeUrl(payload)}`;
   }
