@@ -2,9 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, Flame, Timer, X, Zap } from "lucide-react";
 import { AppShell } from "@/components/quiz/AppShell";
-import { Panel, PrimaryButton } from "@/components/quiz/ui";
+import { Panel } from "@/components/quiz/ui";
 import { useGame } from "@/lib/game-store";
-import { questionsFor, GAME_MODES } from "@/lib/quiz-data";
+import { QUESTIONS, GAME_MODES } from "@/lib/quiz-data";
 import { comboMultiplier, pointsForAnswer, comboTier } from "@/lib/scoring";
 
 export const Route = createFileRoute("/quiz")({ component: QuizPage });
@@ -43,7 +43,15 @@ function QuizPage() {
   const navigate = useNavigate();
   const { config, finishMatch } = useGame();
   const mode = GAME_MODES.find((m) => m.id === config?.mode) ?? GAME_MODES[0]!;
-  const questions = useMemo(() => config ? questionsFor(config.subject, config.questionCount, config.category) : [], [config]);
+  const questions = useMemo(() => {
+    if (!config) return [];
+    let pool = QUESTIONS.filter((q) => config.subject === "haiti" ? q.subject === "histoire" : q.subject === config.subject);
+    if (config.category) {
+      const categoryPool = pool.filter((q) => q.category === config.category);
+      if (categoryPool.length >= 3) pool = categoryPool;
+    }
+    return [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(config.questionCount, pool.length));
+  }, [config]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [combo, setCombo] = useState(0);
