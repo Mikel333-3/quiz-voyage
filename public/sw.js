@@ -1,4 +1,4 @@
-const CACHE_NAME = "quiz-time-v1";
+const CACHE_NAME = "quiztime-go-v2";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./quiztime-favicon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -28,7 +28,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
         return response;
-      }).catch(() => caches.match("./"));
+      }).catch(() => request.mode === "navigate" ? caches.match("./") : Response.error());
     })
   );
 });
