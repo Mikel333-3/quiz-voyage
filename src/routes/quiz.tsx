@@ -6,6 +6,7 @@ import { Panel } from "@/components/quiz/ui";
 import { useGame } from "@/lib/game-store";
 import { QUESTIONS, GAME_MODES, shuffle } from "@/lib/quiz-data";
 import { EXTRA_QUESTIONS } from "@/lib/question-bank";
+import { EXTRA_QUESTIONS_2 } from "@/lib/question-bank-2";
 import { comboMultiplier, pointsForAnswer, comboTier } from "@/lib/scoring";
 import { playSound } from "@/lib/sound";
 
@@ -22,7 +23,7 @@ function levelDistance(a?: string, b?: string) {
 }
 
 function chooseQuestions(config: NonNullable<ReturnType<typeof useGame>["config"]>) {
-  const all = [...QUESTIONS, ...EXTRA_QUESTIONS] as QuizQuestion[];
+  const all = [...QUESTIONS, ...EXTRA_QUESTIONS, ...EXTRA_QUESTIONS_2] as QuizQuestion[];
   const subjectPool = all.filter((q) => config.subject === "haiti" ? q.subject === "histoire" : q.subject === config.subject);
   const recent = new Set<string>();
   try {
@@ -52,7 +53,6 @@ function chooseQuestions(config: NonNullable<ReturnType<typeof useGame>["config"
     sessionStorage.setItem(RECENT_KEY, JSON.stringify(nextRecent));
   } catch { /* ignore */ }
 
-  // Shuffle answer positions too, so the correct answer is not predictably placed.
   return selected.map((q) => {
     const answers = shuffle(q.answers.map((text, index) => ({ text, index })));
     return { ...q, answers: answers.map((a) => a.text), correctIndex: answers.findIndex((a) => a.index === q.correctIndex) };
@@ -68,7 +68,6 @@ function QuizPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
   const [score, setScore] = useState(0);
   const [seconds, setSeconds] = useState(mode.timePerQuestion ?? 0);
   const [answered, setAnswered] = useState(false);
@@ -110,17 +109,15 @@ function QuizPage() {
     const nextCombo = correct ? comboRef.current + 1 : 0;
     const gained = correct ? pointsForAnswer(nextCombo, mode.timePerQuestion === null ? null : seconds, mode.timePerQuestion) : 0;
     const nextScore = scoreRef.current + gained;
-    const nextCorrect = correctRef.current + (correct ? 1 : 0);
     const nextBest = Math.max(bestComboRef.current, nextCombo);
     scoreRef.current = nextScore;
-    correctRef.current = nextCorrect;
+    correctRef.current += correct ? 1 : 0;
     comboRef.current = nextCombo;
     bestComboRef.current = nextBest;
     setSelected(answer);
     setAnswered(true);
     setCombo(nextCombo);
     setBestCombo(nextBest);
-    setCorrectCount(nextCorrect);
     setScore(nextScore);
     playSound(correct ? "correct" : "wrong");
   }
