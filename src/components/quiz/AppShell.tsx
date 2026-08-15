@@ -16,6 +16,11 @@ const NAV = [
   { to: "/profil", label: "Profil", icon: User },
 ] as const;
 const MOBILE_NAV = NAV.filter((n) => n.label !== "Récompenses");
+const MOBILE_MENU_NAV = [
+  ...NAV,
+  { to: "/parametres", label: "Paramètres", icon: Settings },
+  { to: "/aide", label: "Aide", icon: HelpCircle },
+] as const;
 const SESSION_START = "quiztime:session-start";
 const NOTIFICATIONS = [
   { id: "welcome", delay: 60_000, title: "Bienvenue dans QuizTime Go !", text: "Ta première mission t'attend. Fais un quiz et gagne ton premier XP.", icon: "👋" },
@@ -78,7 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/" aria-label="QuizTime Go" onClick={() => { setMenuOpen(false); setNotificationsOpen(false); playSound("nav"); }} className="tap absolute left-1/2 -translate-x-1/2"><Logo className="text-lg" /></Link>
           <div className="relative shrink-0"><NotificationButton notifications={notifications} onToggle={toggleNotifications} /></div>
         </header>
-        {menuOpen && <div className="fixed inset-x-3 top-[4.25rem] z-50 max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl border border-border/70 bg-card/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden"><nav className="grid grid-cols-2 gap-1">{NAV.map(({ to, label, icon: Icon, ...rest }) => <Link key={to} to={to} onClick={() => { setMenuOpen(false); playSound("nav"); }} activeOptions={{ exact: "exact" in rest ? rest.exact : false }} className="tap flex items-center gap-2 rounded-xl px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground active:text-accent"><Icon className="size-4 shrink-0" /><span className="min-w-0 truncate">{label}</span></Link>)}</nav></div>}
+        {menuOpen && <div className="fixed inset-x-3 top-[4.25rem] z-50 max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl border border-border/70 bg-card/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden"><nav className="grid grid-cols-2 gap-1">{MOBILE_MENU_NAV.map(({ to, label, icon: Icon, ...rest }) => <Link key={to} to={to} onClick={() => { setMenuOpen(false); playSound("nav"); }} activeOptions={{ exact: "exact" in rest ? rest.exact : false }} activeProps={{ className: "glass glow-ring text-accent" }} inactiveProps={{ className: "text-muted-foreground hover:text-foreground" }} className="tap flex items-center gap-2 rounded-xl px-3 py-3 text-xs font-semibold uppercase tracking-wide"><Icon className="size-4 shrink-0" /><span className="min-w-0 truncate">{label}</span></Link>)}</nav></div>}
         {notifications.length > 0 && !notificationsOpen && <div className="pointer-events-none fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-3 right-3 z-40 lg:hidden"><div className="mx-auto w-full max-w-sm rounded-2xl border border-accent/20 bg-card/95 p-3 shadow-2xl backdrop-blur-xl animate-rise"><div className="flex min-w-0 gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-lg">{notifications[notifications.length - 1]?.icon}</span><div className="min-w-0"><p className="break-words text-xs font-bold">{notifications[notifications.length - 1]?.title}</p><p className="mt-1 break-words text-[11px] leading-4 text-muted-foreground">{notifications[notifications.length - 1]?.text}</p></div></div></div></div>}
         <main className="px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-10">{children}</main>
       </div>
