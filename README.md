@@ -1,4 +1,4 @@
-# Quiz Voyage
+# Quiz time
 
 QUIZ TIME 🇭🇹 — PROMPT MAÎTRE POUR LOVABLE
 
