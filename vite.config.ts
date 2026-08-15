@@ -1,5 +1,5 @@
 // @lovable.dev/vite-tanstack-config already includes the core TanStack Start/Vite plugins.
-// We only add the deployment settings needed for a static GitHub Pages build.
+// Keep the deployment settings focused on a static GitHub Pages build.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
@@ -8,13 +8,11 @@ export default defineConfig({
     base: "/quiz-voyage/",
   },
   tanstackStart: {
-    // Generate static HTML for the routes that can be discovered at build time.
-    // This lets GitHub Pages serve Quiz Time without a Nitro server.
+    // Generate static HTML so GitHub Pages can serve Quiz Time without a runtime server.
     prerender: {
       enabled: true,
       crawlLinks: true,
       failOnError: true,
     },
-    server: { entry: "server" },
   },
 });
