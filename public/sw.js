@@ -1,4 +1,4 @@
-const CACHE_NAME = "quiztime-go-v2";
+const CACHE_NAME = "quiztime-go-v3";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./quiztime-favicon.svg"];
 
 self.addEventListener("install", (event) => {
