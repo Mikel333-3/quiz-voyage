@@ -4,7 +4,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { GameProvider } from "../lib/game-store";
-import { playSound } from "../lib/sound";
 
 function NotFoundComponent() {
   return <div className="flex min-h-screen items-center justify-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-7xl font-bold text-foreground">404</h1><h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2><p className="mt-2 text-sm text-muted-foreground">The page you're looking for doesn't exist or has been moved.</p><div className="mt-6"><Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Go home</Link></div></div></div>;
@@ -50,16 +49,6 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useEffect(() => {
-    const onClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      const interactive = target?.closest("a,button");
-      if (!interactive || (interactive as HTMLButtonElement).disabled || interactive.hasAttribute("data-no-ui-sound")) return;
-      playSound("nav");
-    };
-    document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
-  }, []);
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     const base = new URL("./", window.location.href);
