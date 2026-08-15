@@ -1,4 +1,4 @@
-const CACHE_NAME = "quiztime-go-v3";
+const CACHE_NAME = "quiztime-go-v4";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./quiztime-favicon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -20,15 +20,15 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(request).then((cached) => {
+    fetch(request).then((response) => {
+      if (response.ok && response.type === "basic") {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+      }
+      return response;
+    }).catch(() => caches.match(request).then((cached) => {
       if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response.ok && response.type === "basic") {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
-        return response;
-      }).catch(() => request.mode === "navigate" ? caches.match("./") : Response.error());
-    })
+      return request.mode === "navigate" ? caches.match("./") : Response.error();
+    }))
   );
 });
