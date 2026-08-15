@@ -39,10 +39,10 @@ export function playSound(kind: "correct" | "wrong" | "tick" | "nav") {
     if (!ctx || !isSoundEnabled()) return;
     try {
       const config = {
-        correct: { start: 620, end: 980, duration: 0.2, volume: 0.13, type: "sine" as OscillatorType },
-        wrong: { start: 190, end: 120, duration: 0.24, volume: 0.11, type: "triangle" as OscillatorType },
-        tick: { start: 680, end: 520, duration: 0.065, volume: 0.055, type: "square" as OscillatorType },
-        nav: { start: 430, end: 510, duration: 0.09, volume: 0.12, type: "sine" as OscillatorType },
+        correct: { start: 620, end: 980, duration: 0.2, volume: 0.22, type: "sine" as OscillatorType },
+        wrong: { start: 190, end: 120, duration: 0.24, volume: 0.19, type: "triangle" as OscillatorType },
+        tick: { start: 680, end: 520, duration: 0.065, volume: 0.09, type: "square" as OscillatorType },
+        nav: { start: 430, end: 510, duration: 0.09, volume: 0.18, type: "sine" as OscillatorType },
       }[kind];
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -78,7 +78,7 @@ export function playBrandSound() {
       const master = ctx.createGain();
       const volume = getVolume();
       master.gain.setValueAtTime(0.0001, now);
-      master.gain.exponentialRampToValueAtTime(0.25 * volume, now + 0.06);
+      master.gain.exponentialRampToValueAtTime(0.4 * volume, now + 0.06);
       master.gain.exponentialRampToValueAtTime(0.001, now + 1.45);
       master.connect(ctx.destination);
       const notes = [196, 293.66, 392, 587.33];
@@ -102,7 +102,7 @@ export function playBrandSound() {
       sweep.frequency.setValueAtTime(140, now + 0.18);
       sweep.frequency.exponentialRampToValueAtTime(620, now + 0.95);
       sweepGain.gain.setValueAtTime(0.0001, now + 0.18);
-      sweepGain.gain.exponentialRampToValueAtTime(0.06 * volume, now + 0.38);
+      sweepGain.gain.exponentialRampToValueAtTime(0.09 * volume, now + 0.38);
       sweepGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.05);
       sweep.connect(sweepGain).connect(master);
       sweep.start(now + 0.18);
@@ -124,7 +124,7 @@ export function startAmbientMusic() {
       const now = context.currentTime;
       const master = context.createGain();
       master.gain.setValueAtTime(0.0001, now);
-      master.gain.exponentialRampToValueAtTime(0.055 * getVolume(), now + 0.7);
+      master.gain.exponentialRampToValueAtTime(0.09 * getVolume(), now + 0.7);
       master.gain.exponentialRampToValueAtTime(0.0001, now + 4.4);
       master.connect(context.destination);
       [130.81, 196, 261.63].forEach((frequency, index) => {
