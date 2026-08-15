@@ -1,0 +1,20 @@
+{
+  "name": "Quiz Time",
+  "short_name": "Quiz Time",
+  "description": "Quiz Time, le jeu de quiz ouvert à tous.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#090b16",
+  "background_color": "#090b16",
+  "icons": [
+    {
+      "src": "./quiztime-favicon.svg",
+      "sizes": "64x64 192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
