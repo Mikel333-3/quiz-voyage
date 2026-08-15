@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { XpBar } from "./ui";
-import { playBrandSound } from "@/lib/sound";
+import { playBrandSound, startAmbientMusic } from "@/lib/sound";
 
 const MESSAGES = ["INITIALIZING...", "LOADING KNOWLEDGE...", "CONNECTING PLAYERS..."];
 const SEEN_KEY = "quiztime:intro-seen";
@@ -11,13 +11,14 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    // Try immediately. If the browser blocks autoplay, the first gesture unlocks the sonic logo.
+    // Try immediately. Mobile browsers may block this until the first gesture.
     playBrandSound();
     let unlocked = false;
     const unlock = () => {
       if (unlocked) return;
       unlocked = true;
       playBrandSound();
+      startAmbientMusic();
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
       window.removeEventListener("touchstart", unlock);
