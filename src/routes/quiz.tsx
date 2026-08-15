@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Flame, Timer, X, Zap } from "lucide-react";
 import { AppShell } from "@/components/quiz/AppShell";
 import { Panel } from "@/components/quiz/ui";
 import { useGame } from "@/lib/game-store";
-import { QUESTIONS, GAME_MODES, shuffle } from "@/lib/quiz-data";
+import { GAME_MODES, type Question } from "@/lib/quiz-data";
 import { EXTRA_QUESTIONS } from "@/lib/question-bank";
 import { EXTRA_QUESTIONS_2 } from "@/lib/question-bank-2";
 import { HAITI_ZONE_QUESTIONS } from "@/lib/haiti-zone-questions";
@@ -17,11 +17,12 @@ export const Route = createFileRoute("/quiz")({ component: QuizPage });
 const LEVELS = ["7e AF", "8e AF", "9e AF", "Seconde", "Rhéto", "Philo"] as const;
 const RECENT_KEY = "quiztime:recent-question-ids";
 const RECENT_LIMIT = 150;
-type QuizQuestion = (typeof QUESTIONS)[number] & { level?: (typeof LEVELS)[number]; difficulty?: "Facile" | "Moyen" | "Difficile"; zoneId?: string };
+const shuffle = <T,>(arr: T[]) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j]!, a[i]!]; } return a; };
+type QuizQuestion = Question & { level?: (typeof LEVELS)[number]; difficulty?: "Facile" | "Moyen" | "Difficile"; zoneId?: string };
 function levelDistance(a?: string, b?: string) { if (!a || !b) return 99; return Math.abs(LEVELS.indexOf(a as (typeof LEVELS)[number]) - LEVELS.indexOf(b as (typeof LEVELS)[number])); }
 
 function chooseQuestions(config: NonNullable<ReturnType<typeof useGame>["config"]>) {
-  const all = [...QUESTIONS, ...EXTRA_QUESTIONS, ...EXTRA_QUESTIONS_2] as QuizQuestion[];
+  const all = [...EXTRA_QUESTIONS, ...EXTRA_QUESTIONS_2] as QuizQuestion[];
   let subjectPool: QuizQuestion[];
   if (config.zoneId) {
     subjectPool = [...HAITI_ZONE_QUESTIONS, ...HAITI_ZONE_QUESTIONS_EXTRA].filter((q) => q.zoneId === config.zoneId) as QuizQuestion[];
@@ -64,24 +65,9 @@ function QuizPage() {
   const [index, setIndex] = useState(0); const [selected, setSelected] = useState<number | null>(null); const [combo, setCombo] = useState(0); const [bestCombo, setBestCombo] = useState(0); const [score, setScore] = useState(0); const [seconds, setSeconds] = useState(questionTimer ?? 0); const [answered, setAnswered] = useState(false);
   const scoreRef = useRef(0); const correctRef = useRef(0); const comboRef = useRef(0); const bestComboRef = useRef(0); const advancingRef = useRef(false); const timeoutHandledRef = useRef(false);
   const feedbackDelay = getFeedbackDelay() * 1000;
-  useEffect(() => {
-    if (!config) { void navigate({ to: "/jouer", replace: true }); return; }
-    if (!questions.length) { clearMatch(); void navigate({ to: "/jouer", replace: true }); }
-  }, [config, questions.length, clearMatch, navigate]);
+  useEffect(() => { if (!config) { void navigate({ to: "/jouer", replace: true }); return; } if (!questions.length) { clearMatch(); void navigate({ to: "/jouer", replace: true }); } }, [config, questions.length, clearMatch, navigate]);
   useEffect(() => { timeoutHandledRef.current = false; setSeconds(questionTimer ?? 0); }, [index, questionTimer]);
-  useEffect(() => {
-    if (!config || answered || questionTimer === null) return;
-    if (seconds <= 0) {
-      if (!timeoutHandledRef.current) {
-        timeoutHandledRef.current = true;
-        playTimerEndSound();
-        submit(null);
-      }
-      return;
-    }
-    const id = window.setInterval(() => setSeconds((s) => { const next = Math.max(0, s - 1); if (next <= 5) playSound("tick"); return next; }), 1000);
-    return () => window.clearInterval(id);
-  }, [seconds, answered, config, questionTimer]);
+  useEffect(() => { if (!config || answered || questionTimer === null) return; if (seconds <= 0) { if (!timeoutHandledRef.current) { timeoutHandledRef.current = true; playTimerEndSound(); submit(null); } return; } const id = window.setInterval(() => setSeconds((s) => { const next = Math.max(0, s - 1); if (next <= 5) playSound("tick"); return next; }), 1000); return () => window.clearInterval(id); }, [seconds, answered, config, questionTimer]);
   useEffect(() => { if (!answered) return; const id = window.setTimeout(() => next(), feedbackDelay); return () => window.clearTimeout(id); }, [answered, feedbackDelay]);
   if (!config || !questions.length) return null;
   const question = questions[index]; if (!question) return null; const tier = comboTier(combo);
@@ -89,7 +75,5 @@ function QuizPage() {
   function next() { if (advancingRef.current) return; advancingRef.current = true; if (index + 1 >= questions.length) { finishMatch({ score: scoreRef.current, correct: correctRef.current, total: questions.length, bestCombo: bestComboRef.current, config }); void navigate({ to: "/resultats", replace: true }); return; } setIndex((i) => i + 1); setSelected(null); setAnswered(false); setSeconds(questionTimer ?? 0); timeoutHandledRef.current = false; advancingRef.current = false; }
   const exitMatch = () => { clearMatch(); playSound("nav"); void navigate({ to: "/jouer", replace: true }); };
   const progress = ((index + (answered ? 1 : 0)) / questions.length) * 100;
-  return <AppShell><div className="mx-auto max-w-3xl space-y-4"><div className="flex items-center justify-between gap-3"><button onClick={exitMatch} className="tap glass rounded-full p-2 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105" aria-label="Quitter la partie"><ArrowLeft className="size-4" /></button><div className="min-w-0 flex-1"><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-[image:var(--gradient-primary)] transition-all" style={{ width: `${progress}%` }} /></div></div><span className="font-display text-xs font-bold">{index + 1}/{questions.length}</span></div>
-    <div className="flex flex-wrap items-center justify-between gap-2 text-xs"><span className="glass flex items-center gap-1 rounded-full px-3 py-1.5"><Zap className="size-3.5 text-accent" /> {score} pts</span><span className={`glass flex items-center gap-1 rounded-full px-3 py-1.5 ${tier !== "none" ? "text-warning" : "text-muted-foreground"}`}><Flame className="size-3.5" /> x{comboMultiplier(combo)}</span>{questionTimer !== null && <span className={`glass flex items-center gap-1 rounded-full px-3 py-1.5 ${seconds <= 5 ? "text-destructive animate-glow-pulse" : "text-accent"}`}><Timer className="size-3.5" /> {seconds}s</span>}</div>
-    <Panel glow className="p-5 sm:p-7"><p className="font-display text-xs uppercase tracking-[0.25em] text-accent">{question.category ?? mode.name}</p><h1 className="mt-3 text-xl font-black leading-tight sm:text-2xl">{question.prompt}</h1><div className="mt-6 grid gap-3">{question.answers.map((answer, i) => { const isCorrect = answered && i === question.correctIndex; const isWrong = answered && selected === i && !isCorrect; return <button key={`${question.id}-${i}`} disabled={answered} onClick={() => submit(i)} className={`tap rounded-2xl border p-4 text-left text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_0_24px_hsl(var(--primary)/.12)] ${isCorrect ? "border-success bg-success/15" : isWrong ? "border-destructive bg-destructive/15" : "border-border bg-surface-2 hover:border-primary/60"}`}><span className="mr-3 inline-grid size-7 place-items-center rounded-lg bg-muted font-display text-xs">{String.fromCharCode(65 + i)}</span>{answer}{isCorrect && <Check className="float-right mt-1 size-5 text-success" />}{isWrong && <X className="float-right mt-1 size-5 text-destructive" />}</button>; })}</div>{answered && <div className="mt-5 animate-rise rounded-2xl bg-surface-2 p-4"><p className="font-display text-sm font-bold">{selected === question.correctIndex ? "🔥 Bonne réponse !" : "Pas cette fois."}</p><p className="mt-1 text-sm text-muted-foreground">{question.explanation}</p><p className="mt-3 text-xs text-muted-foreground">Question suivante dans {feedbackDelay / 1000} seconde{feedbackDelay / 1000 > 1 ? "s" : ""}…</p></div>}</Panel></div></AppShell>;
+  return <AppShell><div className="mx-auto max-w-3xl space-y-4"><div className="flex items-center justify-between gap-3"><button onClick={exitMatch} className="tap glass rounded-full p-2 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105" aria-label="Quitter la partie"><ArrowLeft className="size-4" /></button><div className="min-w-0 flex-1"><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-[image:var(--gradient-primary)] transition-all" style={{ width: `${progress}%` }} /></div></div><span className="font-display text-xs font-bold">{index + 1}/{questions.length}</span></div><div className="flex flex-wrap items-center justify-between gap-2 text-xs"><span className="glass flex items-center gap-1 rounded-full px-3 py-1.5"><Zap className="size-3.5 text-accent" /> {score} pts</span><span className={`glass flex items-center gap-1 rounded-full px-3 py-1.5 ${tier !== "none" ? "text-warning" : "text-muted-foreground"}`}><Flame className="size-3.5" /> x{comboMultiplier(combo)}</span>{questionTimer !== null && <span className={`glass flex items-center gap-1 rounded-full px-3 py-1.5 ${seconds <= 5 ? "text-destructive animate-glow-pulse" : "text-accent"}`}><Timer className="size-3.5" /> {seconds}s</span>}</div><Panel glow className="p-5 sm:p-7"><p className="font-display text-xs uppercase tracking-[0.25em] text-accent">{question.category ?? mode.name}</p><h1 className="mt-3 text-xl font-black leading-tight sm:text-2xl">{question.prompt}</h1><div className="mt-6 grid gap-3">{question.answers.map((answer, i) => { const isCorrect = answered && i === question.correctIndex; const isWrong = answered && selected === i && !isCorrect; return <button key={`${question.id}-${i}`} disabled={answered} onClick={() => submit(i)} className={`tap rounded-2xl border p-4 text-left text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_0_24px_hsl(var(--primary)/.12)] ${isCorrect ? "border-success bg-success/15" : isWrong ? "border-destructive bg-destructive/15" : "border-border bg-surface-2 hover:border-primary/60"}`}><span className="mr-3 inline-grid size-7 place-items-center rounded-lg bg-muted font-display text-xs">{String.fromCharCode(65 + i)}</span>{answer}{isCorrect && <Check className="float-right mt-1 size-5 text-success" />}{isWrong && <X className="float-right mt-1 size-5 text-destructive" />}</button>; })}</div>{answered && <div className="mt-5 animate-rise rounded-2xl bg-surface-2 p-4"><p className="font-display text-sm font-bold">{selected === question.correctIndex ? "🔥 Bonne réponse !" : "Pas cette fois."}</p><p className="mt-1 text-sm text-muted-foreground">{question.explanation}</p><p className="mt-3 text-xs text-muted-foreground">Question suivante dans {feedbackDelay / 1000} seconde{feedbackDelay / 1000 > 1 ? "s" : ""}…</p></div>}</Panel></div></AppShell>;
 }
