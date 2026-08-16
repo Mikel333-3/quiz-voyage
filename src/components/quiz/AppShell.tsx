@@ -1,9 +1,9 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Gamepad2, MapPinned, Trophy, Medal, User, Settings, HelpCircle, Menu, Bell, X, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { levelProgress, useGame } from "@/lib/game-store";
-import { playSound } from "@/lib/sound";
+import { playSound, startAmbientMusic, stopAmbientMusic } from "@/lib/sound";
 import { Logo } from "./Logo";
 import { InstallGame } from "./InstallGame";
 
@@ -43,6 +43,7 @@ function NotificationPanel({ notifications }: { notifications: NotificationItem[
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { player, level } = useGame();
+  const location = useLocation();
   const progress = levelProgress(player.xp);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -61,6 +62,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     });
     return () => timers.forEach(window.clearTimeout);
   }, []);
+
+  useEffect(() => {
+    if (location.pathname === "/") {
+      startAmbientMusic();
+      return () => stopAmbientMusic();
+    }
+    stopAmbientMusic();
+  }, [location.pathname]);
 
   const toggleNotifications = () => {
     setNotificationsOpen((v) => !v);
