@@ -1,4 +1,4 @@
-const VOICE_ENABLED_KEY = "quiztime:voice-enabled";
+const VOICE_ENABLED_KEY = "quiztime:voice-enabled-v2";
 
 export function isVoiceEnabled() {
   try { return localStorage.getItem(VOICE_ENABLED_KEY) === "1"; } catch { return false; }
@@ -51,8 +51,14 @@ export function speakQuestion(text: string, lang = "fr-FR", onEnd?: () => void) 
       utterance.rate = 0.88;
       utterance.pitch = 1.02;
       utterance.volume = 1;
-      utterance.onend = () => onEnd?.();
-      utterance.onerror = () => onEnd?.();
+      let ended = false;
+      const finish = () => {
+        if (ended) return;
+        ended = true;
+        onEnd?.();
+      };
+      utterance.onend = finish;
+      utterance.onerror = finish;
       window.speechSynthesis.resume();
       window.speechSynthesis.speak(utterance);
     } catch {
@@ -60,18 +66,19 @@ export function speakQuestion(text: string, lang = "fr-FR", onEnd?: () => void) 
     }
   };
 
-  if (getVoices().length) {
+  const voices = getVoices();
+  if (voices.length) {
     speak();
   } else {
+    let settled = false;
     const retry = () => {
+      if (settled) return;
+      settled = true;
       window.speechSynthesis.removeEventListener("voiceschanged", retry);
       speak();
     };
     window.speechSynthesis.addEventListener("voiceschanged", retry, { once: true });
-    window.setTimeout(() => {
-      window.speechSynthesis.removeEventListener("voiceschanged", retry);
-      speak();
-    }, 350);
+    window.setTimeout(retry, 1000);
   }
   return true;
 }
