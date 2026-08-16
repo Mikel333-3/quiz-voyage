@@ -9,12 +9,16 @@ export function setVoiceEnabled(enabled: boolean) {
 }
 
 export function isSpeechSynthesisSupported() {
-  return typeof window !== "undefined" && "speechSynthesis" in window;
+  return typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+}
+
+function getVoices() {
+  if (!isSpeechSynthesisSupported()) return [];
+  return window.speechSynthesis.getVoices();
 }
 
 function getBestVoice(lang: string) {
-  if (!isSpeechSynthesisSupported()) return null;
-  const voices = window.speechSynthesis.getVoices();
+  const voices = getVoices();
   if (!voices.length) return null;
   const normalized = lang.toLowerCase();
   const base = normalized.split("-")[0];
@@ -27,20 +31,47 @@ function getBestVoice(lang: string) {
 
 export function stopSpeaking() {
   if (!isSpeechSynthesisSupported()) return;
-  window.speechSynthesis.cancel();
+  try {
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.resume();
+  } catch { /* speech is optional */ }
 }
 
 export function speakQuestion(text: string, lang = "fr-FR", onEnd?: () => void) {
-  if (!isSpeechSynthesisSupported() || !isVoiceEnabled()) return false;
-  stopSpeaking();
-  const utterance = new SpeechSynthesisUtterance(text);
-  const voice = getBestVoice(lang);
-  if (voice) utterance.voice = voice;
-  utterance.lang = voice?.lang ?? lang;
-  utterance.rate = 0.88;
-  utterance.pitch = 1.02;
-  utterance.volume = 1;
-  utterance.onend = () => onEnd?.();
-  window.speechSynthesis.speak(utterance);
+  if (!isSpeechSynthesisSupported() || !isVoiceEnabled() || !text.trim()) return false;
+
+  const speak = () => {
+    if (!isVoiceEnabled() || !isSpeechSynthesisSupported()) return;
+    try {
+      stopSpeaking();
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voice = getBestVoice(lang);
+      if (voice) utterance.voice = voice;
+      utterance.lang = voice?.lang ?? lang;
+      utterance.rate = 0.88;
+      utterance.pitch = 1.02;
+      utterance.volume = 1;
+      utterance.onend = () => onEnd?.();
+      utterance.onerror = () => onEnd?.();
+      window.speechSynthesis.resume();
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      onEnd?.();
+    }
+  };
+
+  if (getVoices().length) {
+    speak();
+  } else {
+    const retry = () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", retry);
+      speak();
+    };
+    window.speechSynthesis.addEventListener("voiceschanged", retry, { once: true });
+    window.setTimeout(() => {
+      window.speechSynthesis.removeEventListener("voiceschanged", retry);
+      speak();
+    }, 350);
+  }
   return true;
 }
