@@ -1,1 +1,0 @@
-Lobby ambient music is intentionally generated in sound.ts with a soft, low-volume pad. It plays only while the app route is the Lobby (/) and stops when leaving the Lobby.
