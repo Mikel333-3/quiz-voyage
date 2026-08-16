@@ -69,7 +69,6 @@ export async function unlockAudio() {
   if (!isSoundEnabled()) return false;
   const ctx = await resumeContext();
   if (!ctx) return false;
-  if (isMusicEnabled()) startAmbientMusic();
   return true;
 }
 
@@ -161,25 +160,33 @@ export function startAmbientMusic() {
       const now = context.currentTime;
       const master = context.createGain();
       master.gain.setValueAtTime(0.0001, now);
-      master.gain.exponentialRampToValueAtTime(0.85 * volume, now + 0.7);
-      master.gain.exponentialRampToValueAtTime(0.0001, now + 4.4);
+      master.gain.exponentialRampToValueAtTime(0.22 * volume, now + 1.1);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 5.6);
       master.connect(context.destination);
-      [130.81, 196, 261.63].forEach((frequency, index) => {
+      const chords = [
+        [174.61, 220, 261.63],
+        [146.83, 196, 246.94],
+        [130.81, 164.81, 220],
+        [146.83, 185, 220],
+      ];
+      const chord = chords[Math.floor(Math.random() * chords.length)]!;
+      chord.forEach((frequency, index) => {
         const osc = context!.createOscillator();
         const gain = context!.createGain();
-        osc.type = index === 2 ? "sine" : "triangle";
+        osc.type = index === 0 ? "sine" : "triangle";
         osc.frequency.setValueAtTime(frequency, now);
-        gain.gain.setValueAtTime(0.9 / (index + 1), now);
+        gain.gain.setValueAtTime(0.18 / (index + 1), now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 5.7);
         osc.connect(gain).connect(master);
         osc.start(now);
-        osc.stop(now + 4.5);
+        osc.stop(now + 5.8);
         ambientNodes.push(osc);
         osc.onended = () => { ambientNodes = ambientNodes.filter((node) => node !== osc); };
       });
     };
 
     playPad();
-    ambientTimer = window.setInterval(playPad, 4200);
+    ambientTimer = window.setInterval(playPad, 5700);
   });
 }
 
