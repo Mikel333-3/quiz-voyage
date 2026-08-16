@@ -12,19 +12,35 @@ export function isSpeechSynthesisSupported() {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
+function getBestVoice(lang: string) {
+  if (!isSpeechSynthesisSupported()) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  const normalized = lang.toLowerCase();
+  const base = normalized.split("-")[0];
+  return voices.find((voice) => voice.lang.toLowerCase() === normalized)
+    ?? voices.find((voice) => voice.lang.toLowerCase().startsWith(`${base}-`))
+    ?? voices.find((voice) => voice.default)
+    ?? voices[0]
+    ?? null;
+}
+
 export function stopSpeaking() {
   if (!isSpeechSynthesisSupported()) return;
   window.speechSynthesis.cancel();
 }
 
-export function speakQuestion(text: string, lang = "fr-FR") {
+export function speakQuestion(text: string, lang = "fr-FR", onEnd?: () => void) {
   if (!isSpeechSynthesisSupported() || !isVoiceEnabled()) return false;
   stopSpeaking();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang;
-  utterance.rate = 0.95;
-  utterance.pitch = 1;
+  const voice = getBestVoice(lang);
+  if (voice) utterance.voice = voice;
+  utterance.lang = voice?.lang ?? lang;
+  utterance.rate = 0.88;
+  utterance.pitch = 1.02;
   utterance.volume = 1;
+  utterance.onend = () => onEnd?.();
   window.speechSynthesis.speak(utterance);
   return true;
 }
