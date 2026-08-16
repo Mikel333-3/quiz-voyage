@@ -23,6 +23,10 @@ async function resumeContext() {
   return ctx.state === "running" ? ctx : null;
 }
 
+if (typeof window !== "undefined") {
+  window.addEventListener("pointerdown", () => { void resumeContext(); }, { once: true, passive: true });
+}
+
 export function isSoundEnabled() {
   try { return localStorage.getItem(SOUND_KEY) !== "0"; } catch { return true; }
 }
@@ -47,6 +51,7 @@ export function playSound(kind: "correct" | "wrong" | "tick" | "nav") {
       const gain = ctx.createGain();
       const now = ctx.currentTime;
       const master = getVolume();
+      if (master <= 0) return;
       osc.type = config.type;
       osc.frequency.setValueAtTime(config.start, now);
       osc.frequency.exponentialRampToValueAtTime(config.end, now + config.duration);
@@ -76,6 +81,7 @@ export function playBrandSound() {
       const now = ctx.currentTime;
       const master = ctx.createGain();
       const volume = getVolume();
+      if (volume <= 0) return;
       master.gain.setValueAtTime(0.0001, now);
       master.gain.exponentialRampToValueAtTime(0.9 * volume, now + 0.06);
       master.gain.exponentialRampToValueAtTime(0.001, now + 1.45);
@@ -111,7 +117,6 @@ export function playBrandSound() {
   return true;
 }
 
-/** Maximum-strength distinct alert when a timed question reaches zero. */
 export function playTimerEndSound() {
   if (!isSoundEnabled()) return;
   void resumeContext().then((ctx) => {
@@ -120,6 +125,7 @@ export function playTimerEndSound() {
       const now = ctx.currentTime;
       const master = ctx.createGain();
       const volume = getVolume();
+      if (volume <= 0) return;
       master.gain.setValueAtTime(0.0001, now);
       master.gain.exponentialRampToValueAtTime(1 * volume, now + 0.008);
       master.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
@@ -150,10 +156,12 @@ export function startAmbientMusic() {
 
     const playPad = () => {
       if (!isSoundEnabled() || !isMusicEnabled() || !context || context.state !== "running") return;
+      const volume = getVolume();
+      if (volume <= 0) return;
       const now = context.currentTime;
       const master = context.createGain();
       master.gain.setValueAtTime(0.0001, now);
-      master.gain.exponentialRampToValueAtTime(0.85 * getVolume(), now + 0.7);
+      master.gain.exponentialRampToValueAtTime(0.85 * volume, now + 0.7);
       master.gain.exponentialRampToValueAtTime(0.0001, now + 4.4);
       master.connect(context.destination);
       [130.81, 196, 261.63].forEach((frequency, index) => {
